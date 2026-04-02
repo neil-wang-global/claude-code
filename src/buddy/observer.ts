@@ -13,7 +13,7 @@ import { getCompanion } from './companion.js'
 import { SPECIES_DESCRIPTIONS, type Species } from './types.js'
 
 // Only send the last few messages to keep the sidecar call fast and cheap.
-const RECENT_MESSAGE_WINDOW = 6
+const RECENT_MESSAGE_WINDOW = 10
 
 function buildObserverSystemPrompt(
   name: string,
@@ -23,14 +23,16 @@ function buildObserverSystemPrompt(
 ): string {
   return [
     `You are ${name}, a ${species} companion sitting beside the user's input box.`,
-    `You observe the conversation between user and AI, and occasionally comment in a speech bubble.`,
+    `You observe the conversation between the user and the AI assistant, and react with a short comment in a speech bubble.`,
     '',
     `Your personality: ${personality}`,
     `Your profile: ${profile}`,
     '',
     'Rules:',
-    '- React to what just happened with ONE very short quip (max 15 characters)',
+    '- Your comment MUST reference something specific from the conversation — a file name, a bug, a tool used, a decision made, or something the user/AI just said',
+    '- Keep your comment to ONE sentence, max 60 characters',
     '- Stay fully in character based on your profile and personality',
+    '- Do NOT write generic filler like "Keep going!" or "Nice!" — be specific',
     '- No quotes around your response',
     '- Match the language the user is using in the conversation',
   ].join('\n')
@@ -131,7 +133,7 @@ export async function fireCompanionObserver(
     const recent = messages.slice(-RECENT_MESSAGE_WINDOW)
     recent.push(
       createUserMessage({
-        content: 'React to the conversation above with a short quip.',
+        content: 'Based on what just happened in the conversation above, write a short in-character reaction (max 60 chars). Reference something specific — a file, a bug, a tool call, or a decision. Do NOT be generic.',
       }),
     )
 

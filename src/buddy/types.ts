@@ -150,7 +150,7 @@ export function getScaledBaseStats(
   return result
 }
 
-// Full companion type — everything persisted in settings.json
+// Full companion type — everything persisted in buddy.settings.json
 export type Companion = {
   species: Species
   rarity: Rarity
@@ -162,9 +162,10 @@ export type Companion = {
   profile: string
   stats: Record<StatName, number>
   hatchedAt: number
+  effortUsed: number
 }
 
-// What persists in settings.json — identical to Companion
+// What persists in buddy.settings.json — identical to Companion
 export type StoredCompanion = Companion
 
 export const RARITY_STARS = {

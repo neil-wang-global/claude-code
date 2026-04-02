@@ -1038,21 +1038,6 @@ export const SettingsSchema = lazySchema(() =>
             'Useful for enterprise administrators to add organization-specific context ' +
             '(e.g., "All plugins from our internal marketplace are vetted and approved.").',
         ),
-      buddy: z
-        .object({
-          species: z.string(),
-          rarity: z.string(),
-          eye: z.string(),
-          hat: z.string(),
-          shiny: z.boolean(),
-          name: z.string(),
-          personality: z.string(),
-          profile: z.string(),
-          stats: z.record(z.string(), z.number()),
-          hatchedAt: z.number(),
-        })
-        .optional()
-        .describe('Companion buddy data persisted from /buddy hatch'),
     })
     .passthrough(),
 )
