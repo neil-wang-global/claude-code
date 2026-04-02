@@ -188,7 +188,6 @@ bun run version   # 验证版本
 | `TORCH` | Torch 功能 |
 | `MONITOR_TOOL` | 监控工具 |
 | `HISTORY_SNIP` | 历史截断 |
-| `ANTI_DISTILLATION_CC` | 反蒸馏保护 |
 | `BASH_CLASSIFIER` | Bash 命令分类器 |
 | `BG_SESSIONS` | 后台会话 |
 | `CACHED_MICROCOMPACT` | 缓存微压缩 |

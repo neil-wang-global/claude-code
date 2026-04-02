@@ -276,12 +276,12 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(REDACT_THINKING_BETA_HEADER)
   }
 
-  // POC: server-side connector-text summarization (anti-distillation). The
-  // API buffers assistant text between tool calls, summarizes it, and returns
-  // the summary with a signature so the original can be restored on subsequent
-  // turns — same mechanism as thinking blocks. Ant-only while we measure
-  // TTFT/TTLT/capacity; betas already flow to tengu_api_success for splitting.
-  // Backend independently requires Capability.ANTHROPIC_INTERNAL_RESEARCH.
+  // POC: server-side connector-text summarization. The API buffers assistant
+  // text between tool calls, summarizes it, and returns the summary with a
+  // signature so the original can be restored on subsequent turns — same
+  // mechanism as thinking blocks. Ant-only while we measure TTFT/TTLT/capacity;
+  // betas already flow to tengu_api_success for splitting. Backend
+  // independently requires Capability.ANTHROPIC_INTERNAL_RESEARCH.
   //
   // USE_CONNECTOR_TEXT_SUMMARIZATION is tri-state: =1 forces on (opt-in even
   // if GB is off), =0 forces off (opt-out of a GB rollout you were bucketed

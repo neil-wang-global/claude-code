@@ -11,6 +11,7 @@ coverage/
 *.tmp
 *.swp
 *.swo
+docs/superpowers/
 
 .claude/
 .idea/
