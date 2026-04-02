@@ -443,12 +443,13 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
           if (reply) {
             setAppState(prev => ({ ...prev, companionReaction: reply }))
           }
-          onDone()
         })
       // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
       return null
     }
+    // Fire off the chat in background, return control immediately
+    onDone()
     return <ChatAction />
   }
 
