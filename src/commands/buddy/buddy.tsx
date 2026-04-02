@@ -120,7 +120,7 @@ function CompanionCard({
         <Text dimColor>Press Esc or Enter to close</Text>
       </Box>
     </Box>
-    <Box paddingX={2} marginTop={1} width={CARD_WIDTH}>
+    <Box paddingX={2} marginTop={1}>
       <Text dimColor italic>{companion.profile}</Text>
     </Box>
   </>
