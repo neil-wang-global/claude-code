@@ -151,7 +151,6 @@ import { logContextMetrics } from 'src/utils/api.js';
 import { CLAUDE_IN_CHROME_MCP_SERVER_NAME, isClaudeInChromeMCPServer } from 'src/utils/claudeInChrome/common.js';
 import { registerCleanup } from 'src/utils/cleanupRegistry.js';
 import { eagerParseCliFlag } from 'src/utils/cliArgs.js';
-import { createEmptyAttributionState } from 'src/utils/commitAttribution.js';
 import { countConcurrentSessions, registerSession, updateSessionName } from 'src/utils/concurrentSessions.js';
 import { getCwd } from 'src/utils/cwd.js';
 import { logForDebugging, setHasFormattedOutput } from 'src/utils/debug.js';
@@ -2996,7 +2995,6 @@ async function run(): Promise<CommanderCommand> {
         trackedFiles: new Set(),
         snapshotSequence: 0
       },
-      attribution: createEmptyAttributionState(),
       thinkingEnabled,
       promptSuggestionEnabled: shouldEnablePromptSuggestion(),
       sessionHooks: new Map(),
