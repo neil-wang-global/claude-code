@@ -97,69 +97,57 @@ export const STAT_NAMES = [
 ] as const
 export type StatName = (typeof STAT_NAMES)[number]
 
-// Species base stats at "rare" rarity (total = 120 per species).
-// Other rarities scale proportionally via getScaledBaseStats().
+// Species base stats at "rare" rarity (×1.0 multiplier).
+// Other rarities apply a multiplier via getScaledBaseStats(), capped at 100 per stat.
+// T1 (310+): dragon, ghost, capybara
+// T2 (255-270): octopus, robot, cat, owl
+// T3 (230-245): axolotl, penguin, cactus, goose, mushroom
+// T4 (190-225): turtle, chonk, duck, blob, snail, rabbit
 export const SPECIES_BASE_STATS: Record<Species, Record<StatName, number>> = {
-  [duck]:     { DEBUGGING: 22, PATIENCE: 28, CHAOS: 18, WISDOM: 30, SNARK: 22 },
-  [goose]:    { DEBUGGING: 18, PATIENCE: 12, CHAOS: 38, WISDOM: 20, SNARK: 32 },
-  [blob]:     { DEBUGGING: 20, PATIENCE: 35, CHAOS: 15, WISDOM: 25, SNARK: 25 },
-  [cat]:      { DEBUGGING: 25, PATIENCE: 15, CHAOS: 28, WISDOM: 22, SNARK: 30 },
-  [dragon]:   { DEBUGGING: 35, PATIENCE: 10, CHAOS: 30, WISDOM: 25, SNARK: 20 },
-  [octopus]:  { DEBUGGING: 30, PATIENCE: 25, CHAOS: 20, WISDOM: 30, SNARK: 15 },
-  [owl]:      { DEBUGGING: 22, PATIENCE: 28, CHAOS: 12, WISDOM: 38, SNARK: 20 },
-  [penguin]:  { DEBUGGING: 24, PATIENCE: 30, CHAOS: 16, WISDOM: 26, SNARK: 24 },
-  [turtle]:   { DEBUGGING: 18, PATIENCE: 40, CHAOS: 8,  WISDOM: 30, SNARK: 24 },
-  [snail]:    { DEBUGGING: 15, PATIENCE: 42, CHAOS: 10, WISDOM: 28, SNARK: 25 },
-  [ghost]:    { DEBUGGING: 28, PATIENCE: 15, CHAOS: 32, WISDOM: 25, SNARK: 20 },
-  [axolotl]:  { DEBUGGING: 20, PATIENCE: 30, CHAOS: 22, WISDOM: 28, SNARK: 20 },
-  [capybara]: { DEBUGGING: 16, PATIENCE: 38, CHAOS: 12, WISDOM: 28, SNARK: 26 },
-  [cactus]:   { DEBUGGING: 22, PATIENCE: 32, CHAOS: 18, WISDOM: 20, SNARK: 28 },
-  [robot]:    { DEBUGGING: 38, PATIENCE: 22, CHAOS: 15, WISDOM: 30, SNARK: 15 },
-  [rabbit]:   { DEBUGGING: 20, PATIENCE: 30, CHAOS: 25, WISDOM: 25, SNARK: 20 },
-  [mushroom]: { DEBUGGING: 18, PATIENCE: 28, CHAOS: 30, WISDOM: 24, SNARK: 20 },
-  [chonk]:    { DEBUGGING: 15, PATIENCE: 35, CHAOS: 22, WISDOM: 18, SNARK: 30 },
+  [dragon]:   { DEBUGGING: 85, PATIENCE: 30, CHAOS: 80, WISDOM: 65, SNARK: 55 },
+  [ghost]:    { DEBUGGING: 75, PATIENCE: 25, CHAOS: 85, WISDOM: 65, SNARK: 60 },
+  [capybara]: { DEBUGGING: 40, PATIENCE: 90, CHAOS: 20, WISDOM: 85, SNARK: 75 },
+  [octopus]:  { DEBUGGING: 70, PATIENCE: 50, CHAOS: 40, WISDOM: 80, SNARK: 30 },
+  [robot]:    { DEBUGGING: 90, PATIENCE: 55, CHAOS: 20, WISDOM: 75, SNARK: 25 },
+  [cat]:      { DEBUGGING: 55, PATIENCE: 25, CHAOS: 60, WISDOM: 45, SNARK: 75 },
+  [owl]:      { DEBUGGING: 45, PATIENCE: 60, CHAOS: 20, WISDOM: 90, SNARK: 40 },
+  [axolotl]:  { DEBUGGING: 50, PATIENCE: 55, CHAOS: 45, WISDOM: 60, SNARK: 35 },
+  [penguin]:  { DEBUGGING: 50, PATIENCE: 65, CHAOS: 30, WISDOM: 55, SNARK: 40 },
+  [cactus]:   { DEBUGGING: 40, PATIENCE: 70, CHAOS: 30, WISDOM: 35, SNARK: 65 },
+  [goose]:    { DEBUGGING: 35, PATIENCE: 15, CHAOS: 80, WISDOM: 30, SNARK: 75 },
+  [mushroom]: { DEBUGGING: 35, PATIENCE: 50, CHAOS: 65, WISDOM: 50, SNARK: 30 },
+  [turtle]:   { DEBUGGING: 30, PATIENCE: 85, CHAOS: 10, WISDOM: 60, SNARK: 40 },
+  [chonk]:    { DEBUGGING: 25, PATIENCE: 65, CHAOS: 40, WISDOM: 30, SNARK: 55 },
+  [duck]:     { DEBUGGING: 45, PATIENCE: 50, CHAOS: 35, WISDOM: 50, SNARK: 35 },
+  [blob]:     { DEBUGGING: 35, PATIENCE: 60, CHAOS: 25, WISDOM: 45, SNARK: 40 },
+  [snail]:    { DEBUGGING: 20, PATIENCE: 90, CHAOS: 10, WISDOM: 45, SNARK: 35 },
+  [rabbit]:   { DEBUGGING: 35, PATIENCE: 45, CHAOS: 40, WISDOM: 40, SNARK: 30 },
 }
 
-// Base stat totals by rarity. "rare" is the reference tier (120).
-export const RARITY_STAT_TOTALS: Record<Rarity, number> = {
-  common: 80,
-  uncommon: 100,
-  rare: 120,
-  epic: 140,
-  legendary: 160,
+// Rarity multipliers applied to base stats. "rare" is the reference (×1.0).
+export const RARITY_MULTIPLIERS: Record<Rarity, number> = {
+  common: 0.6,
+  uncommon: 0.8,
+  rare: 1.0,
+  epic: 1.15,
+  legendary: 1.3,
 }
-
-// Fixed number of stat points the user can freely allocate.
-export const ALLOCATABLE_POINTS = 40
-
-const RARE_TOTAL = RARITY_STAT_TOTALS.rare // 120
 
 /**
- * Get species base stats scaled for a given rarity.
- * The SPECIES_BASE_STATS table is at "rare" (total=120).
- * For other rarities, each stat is proportionally scaled so the total matches RARITY_STAT_TOTALS[rarity].
+ * Get species stats for a given rarity.
+ * Applies the rarity multiplier to base stats, capped at 100 per stat.
  */
 export function getScaledBaseStats(
   species: Species,
   rarity: Rarity,
 ): Record<StatName, number> {
   const base = SPECIES_BASE_STATS[species]
-  const target = RARITY_STAT_TOTALS[rarity]
-  if (target === RARE_TOTAL) return { ...base }
-
-  const raw = {} as Record<StatName, number>
-  let sum = 0
+  const multiplier = RARITY_MULTIPLIERS[rarity]
+  const result = {} as Record<StatName, number>
   for (const name of STAT_NAMES) {
-    raw[name] = Math.round((base[name] * target) / RARE_TOTAL)
-    sum += raw[name]
+    result[name] = Math.min(100, Math.round(base[name] * multiplier))
   }
-  // Fix rounding drift by adjusting the highest stat
-  const diff = target - sum
-  if (diff !== 0) {
-    const highest = STAT_NAMES.reduce((a, b) => (raw[a] >= raw[b] ? a : b))
-    raw[highest] += diff
-  }
-  return raw
+  return result
 }
 
 // Full companion type — everything persisted in settings.json

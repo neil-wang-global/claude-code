@@ -1,19 +1,18 @@
 import * as React from 'react'
 import { Box, Text, useInput } from '../../ink.js'
 import { useSetAppState } from '../../state/AppState.js'
-import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
+import { saveGlobalConfig } from '../../utils/config.js'
 import type { LocalJSXCommandCall } from '../../types/command.js'
 import { getCompanion, saveCompanion } from '../../buddy/companion.js'
 import { renderFace, renderSprite } from '../../buddy/sprites.js'
 import {
-  ALLOCATABLE_POINTS,
   EYES,
   HATS,
   PERSONALITIES,
   RARITIES,
   RARITY_COLORS,
+  RARITY_MULTIPLIERS,
   RARITY_STARS,
-  RARITY_STAT_TOTALS,
   SPECIES,
   STAT_NAMES,
   type Companion,
@@ -22,7 +21,6 @@ import {
   type Personality,
   type Rarity,
   type Species,
-  type StatName,
   getScaledBaseStats,
 } from '../../buddy/types.js'
 
@@ -68,9 +66,8 @@ function CompanionCard({
     }
   })
 
-  const shinyTag = companion.shiny ? ' [SHINY]' : ''
   const title = ` ${companion.name} `
-  const subtitle = `${companion.species}${shinyTag}`
+  const subtitle = companion.species
 
   return (
     <Box
@@ -88,7 +85,7 @@ function CompanionCard({
       </Box>
       <Box justifyContent="center">
         <Text color={color}>{stars}</Text>
-        <Text dimColor> {companion.rarity}{shinyTag}</Text>
+        <Text dimColor> {companion.shiny ? `✨ ${companion.rarity} ✨` : companion.rarity}</Text>
       </Box>
       <Box flexDirection="column" alignItems="center" marginTop={1}>
         {sprite.map((line, i) => (
@@ -138,7 +135,6 @@ type HatchStep =
   | 'hat'
   | 'name'
   | 'personality'
-  | 'stats'
   | 'done'
 
 function ListSelector<T extends string>({
@@ -207,81 +203,6 @@ function TextInput({
   )
 }
 
-function StatAllocator({
-  baseStats,
-  totalPoints,
-  onDone,
-  color,
-}: {
-  baseStats: Record<StatName, number>
-  totalPoints: number
-  onDone: (finalStats: Record<StatName, number>) => void
-  color: string
-}): React.ReactNode {
-  const [allocated, setAllocated] = React.useState<Record<StatName, number>>(
-    () => {
-      const init = {} as Record<StatName, number>
-      for (const name of STAT_NAMES) init[name] = 0
-      return init
-    },
-  )
-  const [index, setIndex] = React.useState(0)
-  const remaining = totalPoints - Object.values(allocated).reduce((a, b) => a + b, 0)
-
-  useInput((_input, key) => {
-    if (key.upArrow) setIndex(i => Math.max(0, i - 1))
-    else if (key.downArrow) setIndex(i => Math.min(STAT_NAMES.length - 1, i + 1))
-    else if (key.rightArrow && remaining > 0) {
-      const name = STAT_NAMES[index]!
-      setAllocated(prev => ({ ...prev, [name]: prev[name] + 1 }))
-    } else if (key.leftArrow) {
-      const name = STAT_NAMES[index]!
-      setAllocated(prev => ({
-        ...prev,
-        [name]: Math.max(0, prev[name] - 1),
-      }))
-    } else if (key.return && remaining === 0) {
-      const finalStats = {} as Record<StatName, number>
-      for (const name of STAT_NAMES) {
-        finalStats[name] = baseStats[name] + allocated[name]
-      }
-      onDone(finalStats)
-    }
-  })
-
-  return (
-    <Box flexDirection="column">
-      <Text bold>Allocate {totalPoints} stat points</Text>
-      <Text dimColor>(↑↓ to select, ←→ to adjust, Enter to confirm)</Text>
-      <Text dimColor>Remaining: <Text bold color={remaining > 0 ? 'yellow' : 'green'}>{remaining}</Text></Text>
-      <Box flexDirection="column" marginTop={1}>
-        {STAT_NAMES.map((name, i) => {
-          const base = baseStats[name]
-          const added = allocated[name]
-          const total = base + added
-          const filled = Math.round(total / 5)
-          const empty = 20 - filled
-          const pointer = i === index ? '▸ ' : '  '
-          return (
-            <Text key={name}>
-              {pointer}
-              <Text dimColor>{name.padEnd(10)}</Text>
-              <Text color={color}>{'█'.repeat(filled)}</Text>
-              <Text dimColor>{'░'.repeat(empty)}</Text>
-              <Text> {base}</Text>
-              {added > 0 ? <Text color="green">+{added}</Text> : null}
-              <Text> = {total}</Text>
-            </Text>
-          )
-        })}
-      </Box>
-      {remaining === 0 ? (
-        <Text color="green" marginTop={1}>All points allocated. Press Enter to confirm.</Text>
-      ) : null}
-    </Box>
-  )
-}
-
 function HatchScreen({
   onDone,
 }: {
@@ -337,7 +258,7 @@ function HatchScreen({
         title="Choose rarity:"
         items={RARITIES}
         labels={r =>
-          `${RARITY_STARS[r]} ${r} (base total: ${RARITY_STAT_TOTALS[r]})`
+          `${RARITY_STARS[r]} ${r} (×${RARITY_MULTIPLIERS[r]})`
         }
         onSelect={r => {
           setRarity(r)
@@ -417,21 +338,7 @@ function HatchScreen({
         items={PERSONALITIES}
         onSelect={p => {
           setPersonality(p)
-          setStep('stats')
-        }}
-      />
-    )
-  }
-
-  if (step === 'stats') {
-    const baseStats = getScaledBaseStats(species, rarity)
-    const color = RARITY_COLORS[rarity]
-    return (
-      <StatAllocator
-        baseStats={baseStats}
-        totalPoints={ALLOCATABLE_POINTS}
-        color={color}
-        onDone={finalStats => {
+          const finalStats = getScaledBaseStats(species, rarity)
           const newCompanion: Companion = {
             species,
             rarity,
@@ -439,7 +346,7 @@ function HatchScreen({
             hat,
             shiny,
             name,
-            personality,
+            personality: p,
             stats: finalStats,
             hatchedAt: Date.now(),
           }
