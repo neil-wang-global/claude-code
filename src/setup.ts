@@ -338,7 +338,7 @@ export async function setup(
       // Prime repo classification cache for auto-undercover mode. Default is
       // undercover ON until proven internal; if this resolves to internal, clear
       // the prompt cache so the next turn picks up the OFF state.
-      void import('./utils/commitAttribution.js').then(async m => {
+      void import('./utils/repoClassification.js').then(async m => {
         if (await m.isInternalModelRepo()) {
           const { clearSystemPromptSections } = await import(
             './constants/systemPromptSections.js'
