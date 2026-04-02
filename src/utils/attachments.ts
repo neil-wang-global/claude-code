@@ -706,6 +706,7 @@ export type Attachment =
     }
   | {
       type: 'companion_intro'
+      companionId: string
       name: string
       species: string
     }

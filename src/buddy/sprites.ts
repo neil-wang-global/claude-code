@@ -739,6 +739,18 @@ export function spriteFrameCount(species: Species): number {
   return BODIES[species].length
 }
 
+/** Max display width (columns) of any rendered frame for the given species. */
+export function spriteBodyWidth(species: Species): number {
+  let max = 0
+  for (const frame of BODIES[species]) {
+    for (const line of frame) {
+      const w = line.replaceAll('{E}', 'x').length
+      if (w > max) max = w
+    }
+  }
+  return max
+}
+
 export function renderFace(bones: SpriteInput): string {
   const eye: Eye = bones.eye
   switch (bones.species) {

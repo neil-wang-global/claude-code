@@ -1,7 +1,9 @@
 {
   "name": "@anthropic-ai/claude-code",
   "version": "2.1.89",
-  "private": true,
+  "bin": {
+    "claude": "cli.js"
+  },
   "description": "Restored Claude Code source tree reconstructed from source maps.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
