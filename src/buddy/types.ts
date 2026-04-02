@@ -182,6 +182,28 @@ export const RARITY_COLORS = {
   legendary: 'warning',
 } as const satisfies Record<Rarity, keyof import('../utils/theme.js').Theme>
 
+// Flavor text shown on the companion card, one per species.
+export const SPECIES_DESCRIPTIONS: Record<Species, string> = {
+  [duck]:     'Quacks at every compile error',
+  [goose]:    'Will steal your semicolons',
+  [blob]:     'Absorbs bugs by sitting on them',
+  [cat]:      'Mass-reverts code at 3 AM',
+  [dragon]:   'Breathes fire on flaky tests',
+  [octopus]:  'Eight arms, eight open PRs',
+  [owl]:      'Has read every man page twice',
+  [penguin]:  'Deploys only in cold environments',
+  [turtle]:   'Slow builds? That is a feature',
+  [snail]:    'Will finish the code review eventually',
+  [ghost]:    'Haunts your deleted branches',
+  [axolotl]:  'Regenerates corrupted configs',
+  [capybara]: 'Everyone merges faster around them',
+  [cactus]:   'Thrives on neglected repos',
+  [robot]:    'Beep boop, your linter now',
+  [rabbit]:   'Hops between git branches too fast',
+  [mushroom]: 'Grows in dark, damp monorepos',
+  [chonk]:    'Sits on the deploy button',
+}
+
 export const PERSONALITIES = [
   'cheerful',
   'sarcastic',

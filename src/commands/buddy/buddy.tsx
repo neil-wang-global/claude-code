@@ -14,6 +14,7 @@ import {
   RARITY_MULTIPLIERS,
   RARITY_STARS,
   SPECIES,
+  SPECIES_DESCRIPTIONS,
   STAT_NAMES,
   type Companion,
   type Eye,
@@ -75,10 +76,11 @@ function CompanionCard({
       paddingY={1}
       width={CARD_WIDTH}
     >
-      <Box justifyContent="center">
+      <Box justifyContent="space-between">
         <Text bold color={color}>
           {companion.name}{stars}
         </Text>
+        <Text dimColor>{companion.species.toUpperCase()}</Text>
       </Box>
       <Box justifyContent="center">
         <Text dimColor>{companion.shiny ? `✨ ${companion.rarity} ✨` : companion.rarity}</Text>
@@ -91,8 +93,7 @@ function CompanionCard({
         ))}
       </Box>
       <Box flexDirection="column" alignItems="center" marginTop={1}>
-        <Text dimColor>{companion.species}</Text>
-        <Text dimColor italic>"{companion.personality}"</Text>
+        <Text dimColor italic>"{SPECIES_DESCRIPTIONS[companion.species]}"</Text>
       </Box>
       <Box
         flexDirection="column"
