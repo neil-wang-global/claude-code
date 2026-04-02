@@ -46,9 +46,18 @@ function buildObserverSystemPrompt(
 export async function generateCompanionProfile(
   species: string,
   personality: string,
+  userImagine?: string,
 ): Promise<string> {
   const description =
     SPECIES_DESCRIPTIONS[species as Species] ?? species
+
+  const imagineBlock = userImagine
+    ? [
+        '',
+        `The user described their companion as: "${userImagine}"`,
+        'This is the MOST important input — weave the user\'s vision into the profile as a central theme.',
+      ].join('\n')
+    : ''
 
   try {
     const controller = createAbortController()
@@ -61,6 +70,7 @@ export async function generateCompanionProfile(
           `Species: ${species}`,
           `Species trait: "${description}"`,
           `Personality: ${personality}`,
+          imagineBlock,
           '',
           'Write a vivid, detailed profile (at least 200 characters) in English that describes:',
           '- How this companion behaves and talks',

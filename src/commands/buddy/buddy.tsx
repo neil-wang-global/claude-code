@@ -138,6 +138,7 @@ type HatchStep =
   | 'hat'
   | 'name'
   | 'personality'
+  | 'imagine'
   | 'generating'
   | 'done'
 
@@ -207,13 +208,45 @@ function TextInput({
   )
 }
 
+function ImagineInput({
+  onSubmit,
+}: {
+  onSubmit: (value: string) => void
+}): React.ReactNode {
+  const [value, setValue] = React.useState('')
+
+  useInput((input, key) => {
+    if (key.return) {
+      onSubmit(value.trim())
+    } else if (key.backspace || key.delete) {
+      setValue(v => v.slice(0, -1))
+    } else if (input && !key.ctrl && !key.meta) {
+      setValue(v => v + input)
+    }
+  })
+
+  return (
+    <Box flexDirection="column">
+      <Text bold>Describe your companion — what do you imagine it looks like?</Text>
+      <Text dimColor>This shapes its personality profile. Press Enter to skip.</Text>
+      <Box marginTop={1}>
+        <Text>{'> '}</Text>
+        <Text>{value}</Text>
+        <Text dimColor>_</Text>
+      </Box>
+    </Box>
+  )
+}
+
 function GeneratingProfile({
   species,
   personality,
+  userImagine,
   onDone,
 }: {
   species: string
   personality: string
+  userImagine: string
   onDone: (profile: string) => void
 }): React.ReactNode {
   const [dots, setDots] = React.useState('')
@@ -226,7 +259,7 @@ function GeneratingProfile({
   }, [])
 
   React.useEffect(() => {
-    void generateCompanionProfile(species, personality).then(onDone)
+    void generateCompanionProfile(species, personality, userImagine || undefined).then(onDone)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -254,6 +287,7 @@ function HatchScreen({
   const [hat, setHat] = React.useState<Hat>('none')
   const [name, setName] = React.useState('')
   const [personality, setPersonality] = React.useState<Personality>(PERSONALITIES[0]!)
+  const [userImagine, setUserImagine] = React.useState('')
   const [companion, setCompanion] = React.useState<Companion | null>(null)
 
   if (step === 'confirm') {
@@ -373,6 +407,17 @@ function HatchScreen({
         items={PERSONALITIES}
         onSelect={p => {
           setPersonality(p)
+          setStep('imagine')
+        }}
+      />
+    )
+  }
+
+  if (step === 'imagine') {
+    return (
+      <ImagineInput
+        onSubmit={text => {
+          setUserImagine(text)
           setStep('generating')
         }}
       />
@@ -384,6 +429,7 @@ function HatchScreen({
       <GeneratingProfile
         species={species}
         personality={personality}
+        userImagine={userImagine}
         onDone={profile => {
           const finalStats = getScaledBaseStats(species, rarity)
           const newCompanion: Companion = {
