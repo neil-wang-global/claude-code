@@ -66,9 +66,6 @@ function CompanionCard({
     }
   })
 
-  const title = ` ${companion.name} `
-  const subtitle = companion.species
-
   return (
     <Box
       flexDirection="column"
@@ -80,12 +77,11 @@ function CompanionCard({
     >
       <Box justifyContent="center">
         <Text bold color={color}>
-          {title}
+          {companion.name} {stars}
         </Text>
       </Box>
       <Box justifyContent="center">
-        <Text color={color}>{stars}</Text>
-        <Text dimColor> {companion.shiny ? `✨ ${companion.rarity} ✨` : companion.rarity}</Text>
+        <Text dimColor>{companion.shiny ? `✨ ${companion.rarity} ✨` : companion.rarity}</Text>
       </Box>
       <Box flexDirection="column" alignItems="center" marginTop={1}>
         {sprite.map((line, i) => (
@@ -95,7 +91,7 @@ function CompanionCard({
         ))}
       </Box>
       <Box flexDirection="column" alignItems="center" marginTop={1}>
-        <Text dimColor>{subtitle}</Text>
+        <Text dimColor>{companion.species}</Text>
         <Text dimColor italic>"{companion.personality}"</Text>
       </Box>
       <Box
