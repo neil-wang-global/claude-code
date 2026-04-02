@@ -97,39 +97,86 @@ export const STAT_NAMES = [
 ] as const
 export type StatName = (typeof STAT_NAMES)[number]
 
-// Deterministic parts — derived from hash(userId)
-export type CompanionBones = {
-  rarity: Rarity
+// Species base stats at "rare" rarity (total = 120 per species).
+// Other rarities scale proportionally via getScaledBaseStats().
+export const SPECIES_BASE_STATS: Record<Species, Record<StatName, number>> = {
+  [duck]:     { DEBUGGING: 22, PATIENCE: 28, CHAOS: 18, WISDOM: 30, SNARK: 22 },
+  [goose]:    { DEBUGGING: 18, PATIENCE: 12, CHAOS: 38, WISDOM: 20, SNARK: 32 },
+  [blob]:     { DEBUGGING: 20, PATIENCE: 35, CHAOS: 15, WISDOM: 25, SNARK: 25 },
+  [cat]:      { DEBUGGING: 25, PATIENCE: 15, CHAOS: 28, WISDOM: 22, SNARK: 30 },
+  [dragon]:   { DEBUGGING: 35, PATIENCE: 10, CHAOS: 30, WISDOM: 25, SNARK: 20 },
+  [octopus]:  { DEBUGGING: 30, PATIENCE: 25, CHAOS: 20, WISDOM: 30, SNARK: 15 },
+  [owl]:      { DEBUGGING: 22, PATIENCE: 28, CHAOS: 12, WISDOM: 38, SNARK: 20 },
+  [penguin]:  { DEBUGGING: 24, PATIENCE: 30, CHAOS: 16, WISDOM: 26, SNARK: 24 },
+  [turtle]:   { DEBUGGING: 18, PATIENCE: 40, CHAOS: 8,  WISDOM: 30, SNARK: 24 },
+  [snail]:    { DEBUGGING: 15, PATIENCE: 42, CHAOS: 10, WISDOM: 28, SNARK: 25 },
+  [ghost]:    { DEBUGGING: 28, PATIENCE: 15, CHAOS: 32, WISDOM: 25, SNARK: 20 },
+  [axolotl]:  { DEBUGGING: 20, PATIENCE: 30, CHAOS: 22, WISDOM: 28, SNARK: 20 },
+  [capybara]: { DEBUGGING: 16, PATIENCE: 38, CHAOS: 12, WISDOM: 28, SNARK: 26 },
+  [cactus]:   { DEBUGGING: 22, PATIENCE: 32, CHAOS: 18, WISDOM: 20, SNARK: 28 },
+  [robot]:    { DEBUGGING: 38, PATIENCE: 22, CHAOS: 15, WISDOM: 30, SNARK: 15 },
+  [rabbit]:   { DEBUGGING: 20, PATIENCE: 30, CHAOS: 25, WISDOM: 25, SNARK: 20 },
+  [mushroom]: { DEBUGGING: 18, PATIENCE: 28, CHAOS: 30, WISDOM: 24, SNARK: 20 },
+  [chonk]:    { DEBUGGING: 15, PATIENCE: 35, CHAOS: 22, WISDOM: 18, SNARK: 30 },
+}
+
+// Base stat totals by rarity. "rare" is the reference tier (120).
+export const RARITY_STAT_TOTALS: Record<Rarity, number> = {
+  common: 80,
+  uncommon: 100,
+  rare: 120,
+  epic: 140,
+  legendary: 160,
+}
+
+// Fixed number of stat points the user can freely allocate.
+export const ALLOCATABLE_POINTS = 40
+
+const RARE_TOTAL = RARITY_STAT_TOTALS.rare // 120
+
+/**
+ * Get species base stats scaled for a given rarity.
+ * The SPECIES_BASE_STATS table is at "rare" (total=120).
+ * For other rarities, each stat is proportionally scaled so the total matches RARITY_STAT_TOTALS[rarity].
+ */
+export function getScaledBaseStats(
+  species: Species,
+  rarity: Rarity,
+): Record<StatName, number> {
+  const base = SPECIES_BASE_STATS[species]
+  const target = RARITY_STAT_TOTALS[rarity]
+  if (target === RARE_TOTAL) return { ...base }
+
+  const raw = {} as Record<StatName, number>
+  let sum = 0
+  for (const name of STAT_NAMES) {
+    raw[name] = Math.round((base[name] * target) / RARE_TOTAL)
+    sum += raw[name]
+  }
+  // Fix rounding drift by adjusting the highest stat
+  const diff = target - sum
+  if (diff !== 0) {
+    const highest = STAT_NAMES.reduce((a, b) => (raw[a] >= raw[b] ? a : b))
+    raw[highest] += diff
+  }
+  return raw
+}
+
+// Full companion type — everything persisted in settings.json
+export type Companion = {
   species: Species
+  rarity: Rarity
   eye: Eye
   hat: Hat
   shiny: boolean
-  stats: Record<StatName, number>
-}
-
-// Model-generated soul — stored in config after first hatch
-export type CompanionSoul = {
   name: string
   personality: string
+  stats: Record<StatName, number>
+  hatchedAt: number
 }
 
-export type Companion = CompanionBones &
-  CompanionSoul & {
-    hatchedAt: number
-  }
-
-// What actually persists in config. Bones are regenerated from hash(userId)
-// on every read so species renames don't break stored companions and users
-// can't edit their way to a legendary.
-export type StoredCompanion = CompanionSoul & { hatchedAt: number }
-
-export const RARITY_WEIGHTS = {
-  common: 60,
-  uncommon: 25,
-  rare: 10,
-  epic: 4,
-  legendary: 1,
-} as const satisfies Record<Rarity, number>
+// What persists in settings.json — identical to Companion
+export type StoredCompanion = Companion
 
 export const RARITY_STARS = {
   common: '★',
@@ -146,3 +193,15 @@ export const RARITY_COLORS = {
   epic: 'autoAccept',
   legendary: 'warning',
 } as const satisfies Record<Rarity, keyof import('../utils/theme.js').Theme>
+
+export const PERSONALITIES = [
+  'cheerful',
+  'sarcastic',
+  'wise',
+  'chaotic',
+  'shy',
+  'bold',
+  'dreamy',
+  'grumpy',
+] as const
+export type Personality = (typeof PERSONALITIES)[number]
