@@ -120,7 +120,7 @@ export const STAT_NAMES = [
 ] as const
 export type StatName = (typeof STAT_NAMES)[number]
 
-// Species base stats (Pokemon-scale race values). No cap — IVs (0-31) are added on top.
+// Species base stats (race values). No cap — IVs (0-31) are added on top.
 // T1 (BST 530-600): dragon, ghost, capybara, cndragon, wukong, totoro, gamabunta, mewtwo, bajie, pikachu, koromon, trex, thanos
 // T2 (BST 460-510): octopus, robot, cat, owl
 // T3 (BST 380-430): axolotl, penguin, cactus, goose, mushroom, turtle
@@ -218,7 +218,7 @@ export type BuddySettings = {
 }
 
 /**
- * Compute final stats using the Pokemon formula.
+ * Compute final stats.
  * stat = floor(((2 × base + IV + EV/4) × level / 100) + 5) × natureModifier
  */
 export function computeStats(companion: Companion): Record<StatName, number> {
