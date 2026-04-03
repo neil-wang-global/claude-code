@@ -20,7 +20,7 @@
     "dev": "bun run ./src/dev-entry.ts",
     "start": "bun run ./src/dev-entry.ts",
     "version": "bun run ./src/dev-entry.ts --version",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install --force"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
