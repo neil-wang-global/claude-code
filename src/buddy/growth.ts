@@ -27,10 +27,11 @@ export function addExperience(inputTokens: number, outputTokens: number): LevelU
 
   const rawExp = inputTokens + outputTokens
   const exp = companion.shiny ? Math.floor(rawExp * SHINY_EXP_MULTIPLIER) : rawExp
-  const oldLevel = companion.level
+  let oldLevel = 0
 
   const updated = updateActiveCompanion(current => {
-    const newExp = current.exp + exp
+    oldLevel = current.level ?? 1
+    const newExp = (current.exp ?? 0) + exp
     const newLevel = getLevelFromExp(newExp)
     return { ...current, exp: newExp, level: newLevel }
   })

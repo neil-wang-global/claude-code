@@ -2833,7 +2833,7 @@ export function REPL({
     if (levelUp) {
       addNotification({
         key: 'buddy-level-up',
-        jsx: <Text bold color="warning">{`\u{1F389} ${levelUp.companionName} \u5347\u7EA7\u4E86\uFF01Lv.${levelUp.oldLevel} \u2192 Lv.${levelUp.newLevel}`}</Text>,
+        jsx: <Text bold color="warning">{`\u{1F389} ${levelUp.companionName}\u5347\u7EA7\u4E86\uFF01`}</Text>,
         priority: 'immediate' as const,
         timeoutMs: 8000,
       })
@@ -2843,15 +2843,7 @@ export function REPL({
     if (shouldRollForEv()) {
       void classifyConversationDimension(messagesRef.current).then(stat => {
         if (!stat) return
-        const evResult = applyEvGain(stat)
-        if (evResult) {
-          addNotification({
-            key: 'buddy-ev-gain',
-            jsx: <Text bold color="success">{`\u{1F4AA} ${evResult.companionName} \u7684 ${evResult.stat} \u52AA\u529B\u503C +${evResult.amount}\uFF01`}</Text>,
-            priority: 'immediate' as const,
-            timeoutMs: 6000,
-          })
-        }
+        applyEvGain(stat)
       })
     }
     queryCheckpoint('query_end');
