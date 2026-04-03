@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useNotifications } from '../context/notifications.js';
 import { Text } from '../ink.js';
 import { getGlobalConfig } from '../utils/config.js';
+import { hasAnyCompanions } from './companion.js';
 import { getRainbowColor } from '../utils/thinking.js';
 
 // Local date, not UTC — 24h rolling wave across timezones. Sustained Twitter
@@ -50,7 +51,7 @@ export function useBuddyNotification() {
   if ($[0] !== addNotification || $[1] !== removeNotification) {
     t0 = () => {
       const config = getGlobalConfig();
-      if (config.companion || !isBuddyTeaserWindow()) {
+      if (config.companion || hasAnyCompanions() || !isBuddyTeaserWindow()) {
         return;
       }
       addNotification({

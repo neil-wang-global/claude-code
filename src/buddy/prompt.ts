@@ -2,13 +2,14 @@ import type { Message } from '../types/message.js'
 import type { Attachment } from '../utils/attachments.js'
 import { getGlobalConfig } from '../utils/config.js'
 import { getCompanion } from './companion.js'
+import { SPECIES_LABELS } from './types.js'
 
 export function companionIntroText(name: string, species: string): string {
-  return `# Companion
+  return `# 同伴
 
-A small ${species} named ${name} sits beside the user's input box and occasionally comments in a speech bubble. You're not ${name} — it's a separate watcher.
+一只名叫 ${name} 的${species}正待在用户输入框旁边，偶尔会在气泡里插一句话。你不是 ${name} —— 它是独立的旁观者。
 
-When the user addresses ${name} directly (by name), its bubble will answer. Your job in that moment is to stay out of the way: respond in ONE line or less, or just answer any part of the message meant for you. Don't explain that you're not ${name} — they know. Don't narrate what ${name} might say — the bubble handles that.`
+当用户直接叫 ${name} 的名字时，它的气泡会自己回应。此时你的任务是让开：只用一行内简短回应你需要回答的部分，或者只回答消息里明确是对你说的内容。不要解释你不是 ${name}——用户知道。也不要替 ${name} 复述它会说什么——气泡会自己处理。`
 }
 
 export function getCompanionIntroAttachment(
@@ -17,18 +18,18 @@ export function getCompanionIntroAttachment(
   const companion = getCompanion()
   if (!companion || getGlobalConfig().companionMuted) return []
 
-  // Skip if already announced for this companion.
   for (const msg of messages ?? []) {
     if (msg.type !== 'attachment') continue
     if (msg.attachment.type !== 'companion_intro') continue
-    if (msg.attachment.name === companion.name) return []
+    if (msg.attachment.companionId === companion.id) return []
   }
 
   return [
     {
       type: 'companion_intro',
+      companionId: companion.id,
       name: companion.name,
-      species: companion.species,
+      species: SPECIES_LABELS[companion.species],
     },
   ]
 }

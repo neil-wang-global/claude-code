@@ -10,8 +10,9 @@ import { getGlobalConfig } from '../utils/config.js';
 import { isFullscreenActive } from '../utils/fullscreen.js';
 import type { Theme } from '../utils/theme.js';
 import { getCompanion } from './companion.js';
-import { renderFace, renderSprite, spriteFrameCount } from './sprites.js';
+import { renderFace, renderSprite, spriteBodyWidth, spriteFrameCount } from './sprites.js';
 import { RARITY_COLORS } from './types.js';
+import type { Species } from './types.js';
 const TICK_MS = 500;
 const BUBBLE_SHOW = 20; // ticks → ~10s at 500ms
 const FADE_WINDOW = 6; // last ~3s the bubble dims so you know it's about to go
@@ -149,13 +150,13 @@ function SpeechBubble(t0) {
   return t9;
 }
 export const MIN_COLS_FOR_FULL_SPRITE = 100;
-const SPRITE_BODY_WIDTH = 12;
 const NAME_ROW_PAD = 2; // focused state wraps name in spaces: ` name `
 const SPRITE_PADDING_X = 2;
 const BUBBLE_WIDTH = 46; // SpeechBubble box (44) + tail column
 const NARROW_QUIP_CAP = 36;
-function spriteColWidth(nameWidth: number): number {
-  return Math.max(SPRITE_BODY_WIDTH, nameWidth + NAME_ROW_PAD);
+function spriteColWidth(nameWidth: number, species?: Species): number {
+  const bodyWidth = species ? spriteBodyWidth(species) : 12;
+  return Math.max(bodyWidth, nameWidth + NAME_ROW_PAD);
 }
 
 // Width the sprite area consumes. PromptInput subtracts this so text wraps
@@ -169,7 +170,7 @@ export function companionReservedColumns(terminalColumns: number, speaking: bool
   if (terminalColumns < MIN_COLS_FOR_FULL_SPRITE) return 0;
   const nameWidth = stringWidth(companion.name);
   const bubble = speaking && !isFullscreenActive() ? BUBBLE_WIDTH : 0;
-  return spriteColWidth(nameWidth) + SPRITE_PADDING_X + bubble;
+  return spriteColWidth(nameWidth, companion.species) + SPRITE_PADDING_X + bubble;
 }
 export function CompanionSprite(): React.ReactNode {
   const reaction = useAppState(s => s.companionReaction);
@@ -213,7 +214,7 @@ export function CompanionSprite(): React.ReactNode {
   const companion = getCompanion();
   if (!companion || getGlobalConfig().companionMuted) return null;
   const color = RARITY_COLORS[companion.rarity];
-  const colWidth = spriteColWidth(stringWidth(companion.name));
+  const colWidth = spriteColWidth(stringWidth(companion.name), companion.species);
   const bubbleAge = reaction ? tick - lastSpokeTick.current : 0;
   const fading = reaction !== undefined && bubbleAge >= BUBBLE_SHOW - FADE_WINDOW;
   const petAge = petAt ? tick - petStartTick : Infinity;
@@ -269,7 +270,7 @@ export function CompanionSprite(): React.ReactNode {
       </Text>
     </Box>;
   if (!reaction) {
-    return <Box paddingX={1}>{spriteColumn}</Box>;
+    return <Box paddingX={1} flexShrink={0}>{spriteColumn}</Box>;
   }
 
   // Fullscreen: bubble renders separately via CompanionFloatingBubble in
@@ -278,7 +279,7 @@ export function CompanionSprite(): React.ReactNode {
   // Non-fullscreen: bubble sits inline beside the sprite (input shrinks)
   // because floating into Static scrollback can't be cleared.
   if (isFullscreenActive()) {
-    return <Box paddingX={1}>{spriteColumn}</Box>;
+    return <Box paddingX={1} flexShrink={0}>{spriteColumn}</Box>;
   }
   return <Box flexDirection="row" alignItems="flex-end" paddingX={1} flexShrink={0}>
       <SpeechBubble text={reaction} color={color} fading={fading} tail="right" />

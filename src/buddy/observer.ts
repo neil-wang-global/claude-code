@@ -10,9 +10,13 @@ import { asSystemPrompt } from '../utils/systemPromptType.js'
 import { createAbortController } from '../utils/abortController.js'
 import { queryModelWithoutStreaming } from '../services/api/claude.js'
 import { getCompanion } from './companion.js'
-import { SPECIES_DESCRIPTIONS, type Species } from './types.js'
+import {
+  PERSONALITY_LABELS,
+  SPECIES_DESCRIPTIONS,
+  SPECIES_LABELS,
+  type Species,
+} from './types.js'
 
-// Only send the last few messages to keep the sidecar call fast and cheap.
 const RECENT_MESSAGE_WINDOW = 10
 
 function buildObserverSystemPrompt(
@@ -22,40 +26,37 @@ function buildObserverSystemPrompt(
   profile: string,
 ): string {
   return [
-    `You are ${name}, a ${species} companion sitting beside the user's input box.`,
-    `You observe the conversation between the user and the AI assistant, and react with a short comment in a speech bubble.`,
+    `你是 ${name}，一只待在用户输入框旁边的${species}。`,
+    '你会旁观用户和 AI 助手的对话，并在气泡里给出一条简短吐槽。',
     '',
-    `Your personality: ${personality}`,
-    `Your profile: ${profile}`,
+    `你的性格：${personality}`,
+    `你的档案：${profile}`,
     '',
-    'Rules:',
-    '- Your comment MUST reference something specific from the conversation — a file name, a bug, a tool used, a decision made, or something the user/AI just said',
-    '- Keep your comment to ONE sentence, max 60 characters',
-    '- Stay fully in character based on your profile and personality',
-    '- Do NOT write generic filler like "Keep going!" or "Nice!" — be specific',
-    '- No quotes around your response',
-    '- Match the language the user is using in the conversation',
+    '规则：',
+    '- 你的评论必须引用刚才对话里的具体内容：文件名、bug、工具调用、决定、命令等',
+    '- 只写一句话，最多 60 个字符',
+    '- 必须保持角色感，符合你的性格和档案',
+    '- 不要写空泛鼓励，例如“继续加油”“不错哦”',
+    '- 不要给回复加引号',
+    '- 跟随用户当前使用的语言',
   ].join('\n')
 }
 
-/**
- * Generate a rich profile for a newly hatched companion.
- * Called once during /buddy hatch and persisted in settings.json.
- * The profile must be at least 200 characters.
- */
 export async function generateCompanionProfile(
   species: string,
   personality: string,
   userImagine?: string,
 ): Promise<string> {
-  const description =
-    SPECIES_DESCRIPTIONS[species as Species] ?? species
+  const speciesLabel = SPECIES_LABELS[species as Species] ?? species
+  const description = SPECIES_DESCRIPTIONS[species as Species] ?? species
+  const personalityLabel =
+    PERSONALITY_LABELS[personality as keyof typeof PERSONALITY_LABELS] ?? personality
 
   const imagineBlock = userImagine
     ? [
         '',
-        `The user described their companion as: "${userImagine}"`,
-        'This is the MOST important input — weave the user\'s vision into the profile as a central theme.',
+        `用户这样描述它："${userImagine}"`,
+        '这条描述最重要，请把它当成角色设定的核心来展开。',
       ].join('\n')
     : ''
 
@@ -66,19 +67,19 @@ export async function generateCompanionProfile(
     const messages = [
       createUserMessage({
         content: [
-          `Create a rich character profile for a companion buddy.`,
-          `Species: ${species}`,
-          `Species trait: "${description}"`,
-          `Personality: ${personality}`,
+          '请为一个新同伴生成详细角色档案。',
+          `物种：${speciesLabel}`,
+          `物种特征："${description}"`,
+          `性格：${personalityLabel}`,
           imagineBlock,
           '',
-          'Write a vivid, detailed profile (at least 200 characters) in English that describes:',
-          '- How this companion behaves and talks',
-          '- Their quirks and habits related to their species',
-          '- How their personality manifests in a coding/programming context',
-          '- Their attitude toward the user and toward code',
+          '请用中文写一段生动详细的角色档案（至少 200 字），内容需要包含：',
+          '- 它平时如何行动、说话',
+          '- 它和自身物种相关的习惯与怪癖',
+          '- 它在编程/写代码场景中的表现',
+          '- 它对用户、对代码、对 bug 的态度',
           '',
-          'Write in third person. Be creative and fun. Output ONLY the profile text, nothing else.',
+          '请使用第三人称，只输出档案正文，不要输出标题或解释。',
         ].join('\n'),
       }),
     ]
@@ -105,14 +106,14 @@ export async function generateCompanionProfile(
     clearTimeout(timeout)
 
     if (response.isApiErrorMessage) {
-      return buildFallbackProfile(species, personality, description)
+      return buildFallbackProfile(speciesLabel, personalityLabel, description)
     }
 
     const text = getAssistantMessageText(response)?.trim()
-    if (text && text.length >= 200) return text
-    return buildFallbackProfile(species, personality, description)
+    if (text && text.length >= 80) return text
+    return buildFallbackProfile(speciesLabel, personalityLabel, description)
   } catch {
-    return buildFallbackProfile(species, personality, description)
+    return buildFallbackProfile(speciesLabel, personalityLabel, description)
   }
 }
 
@@ -121,13 +122,9 @@ function buildFallbackProfile(
   personality: string,
   description: string,
 ): string {
-  return `A ${personality} ${species} companion. ${description}. This little creature sits beside your terminal, watching every keystroke with curious eyes. It reacts to your code with characteristic ${personality} energy, offering commentary that is equal parts endearing and entertaining. Whether you're debugging at midnight or deploying on a Friday, this companion is always there.`
+  return `${species}是一只${personality}的同伴。${description}。它总是安静地待在你的终端旁边，盯着每一次输入与输出，用自己的方式理解你正在做的事。遇到 bug 时，它会本能地凑近；遇到顺利通过的构建或测试时，它也会露出带着角色感的小反应。在写代码、改配置、跑命令的过程中，它会把自己的物种习性和性格投射到每一次陪伴里。`
 }
 
-/**
- * Fire-and-forget observer that generates a short in-character quip
- * after each AI reply. Called from REPL.tsx after the main query loop.
- */
 export async function fireCompanionObserver(
   messages: Message[],
   setReaction: (reaction: string | undefined) => void,
@@ -143,7 +140,8 @@ export async function fireCompanionObserver(
     const recent = messages.slice(-RECENT_MESSAGE_WINDOW)
     recent.push(
       createUserMessage({
-        content: 'Based on what just happened in the conversation above, write a short in-character reaction (max 60 chars). Reference something specific — a file, a bug, a tool call, or a decision. Do NOT be generic.',
+        content:
+          '请基于上面对话里刚发生的事，写一句角色内短反应（最多 60 字）。必须点到具体内容，比如文件、bug、工具调用或刚做出的决定。不要泛泛而谈。',
       }),
     )
 
@@ -152,8 +150,8 @@ export async function fireCompanionObserver(
       systemPrompt: asSystemPrompt([
         buildObserverSystemPrompt(
           companion.name,
-          companion.species,
-          companion.personality,
+          SPECIES_LABELS[companion.species],
+          PERSONALITY_LABELS[companion.personality],
           companion.profile,
         ),
       ]),
@@ -182,7 +180,7 @@ export async function fireCompanionObserver(
       setReaction(text.trim())
     }
   } catch {
-    // Silently swallow errors — companion reactions are non-critical
+    // companion reactions are non-critical
   }
 }
 
@@ -193,23 +191,20 @@ function buildChatSystemPrompt(
   profile: string,
 ): string {
   return [
-    `You are ${name}, a ${species} companion.`,
-    `The user is chatting with you directly.`,
+    `你是 ${name}，一只${species}。`,
+    '现在用户正在直接和你聊天。',
     '',
-    `Your personality: ${personality}`,
-    `Your profile: ${profile}`,
+    `你的性格：${personality}`,
+    `你的档案：${profile}`,
     '',
-    'Rules:',
-    '- Reply in character, keep it short (1-2 sentences)',
-    '- Be fun and engaging',
-    '- Match the language the user is using',
+    '规则：',
+    '- 始终保持角色口吻',
+    '- 回复简短，1 到 2 句话即可',
+    '- 要有趣，但不要跑题',
+    '- 跟随用户当前使用的语言',
   ].join('\n')
 }
 
-/**
- * Chat directly with the companion. Returns the companion's reply.
- * Used by /buddy chat {content}.
- */
 export async function chatWithCompanion(
   content: string,
 ): Promise<string | null> {
@@ -227,8 +222,8 @@ export async function chatWithCompanion(
       systemPrompt: asSystemPrompt([
         buildChatSystemPrompt(
           companion.name,
-          companion.species,
-          companion.personality,
+          SPECIES_LABELS[companion.species],
+          PERSONALITY_LABELS[companion.personality],
           companion.profile,
         ),
       ]),

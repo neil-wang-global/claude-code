@@ -1,4 +1,4 @@
-import { getCompanion, saveCompanion } from './companion.js'
+import { getActiveCompanion, updateActiveCompanion } from './companion.js'
 import { STAT_NAMES, type StatName } from './types.js'
 
 const GROWTH_CHANCE = 0.15
@@ -17,7 +17,7 @@ export type GrowthResult = {
  * Returns the growth result if a stat increased, null otherwise.
  */
 export function tryBuddyStatGrowth(): GrowthResult {
-  const companion = getCompanion()
+  const companion = getActiveCompanion()
   if (!companion) return null
   if (companion.effortUsed >= MAX_EFFORT) return null
   if (Math.random() >= GROWTH_CHANCE) return null
@@ -29,9 +29,12 @@ export function tryBuddyStatGrowth(): GrowthResult {
   const oldValue = companion.stats[stat]
   const newValue = oldValue + 1
 
-  companion.stats[stat] = newValue
-  companion.effortUsed += 1
-  saveCompanion(companion)
+  const updated = updateActiveCompanion(current => ({
+    ...current,
+    stats: { ...current.stats, [stat]: newValue },
+    effortUsed: current.effortUsed + 1,
+  }))
 
-  return { stat, oldValue, newValue, companionName: companion.name }
+  if (!updated) return null
+  return { stat, oldValue, newValue, companionName: updated.name }
 }

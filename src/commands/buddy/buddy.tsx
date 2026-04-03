@@ -3,19 +3,30 @@ import { Box, Text, useInput } from '../../ink.js'
 import { useSetAppState } from '../../state/AppState.js'
 import { saveGlobalConfig } from '../../utils/config.js'
 import type { LocalJSXCommandCall } from '../../types/command.js'
-import { getCompanion, saveCompanion } from '../../buddy/companion.js'
+import {
+  addCompanion,
+  getCompanion,
+  listCompanions,
+  setActiveCompanion,
+} from '../../buddy/companion.js'
 import { generateCompanionProfile, chatWithCompanion } from '../../buddy/observer.js'
 import { renderFace, renderSprite } from '../../buddy/sprites.js'
 import {
   EYES,
   HATS,
+  HAT_LABELS,
   PERSONALITIES,
+  PERSONALITY_LABELS,
   RARITIES,
   RARITY_COLORS,
+  RARITY_LABELS,
   RARITY_MULTIPLIERS,
   RARITY_STARS,
+  RACE_LABELS,
   SPECIES,
   SPECIES_DESCRIPTIONS,
+  SPECIES_LABELS,
+  SPECIES_TO_RACE,
   STAT_NAMES,
   type Companion,
   type Eye,
@@ -26,9 +37,9 @@ import {
   getScaledBaseStats,
 } from '../../buddy/types.js'
 
-// ── Card ──────────────────────────────────────────────────────────────
-
 const CARD_WIDTH = 44
+
+type OwnedCompanion = NonNullable<ReturnType<typeof getCompanion>>
 
 function StatBar({
   name,
@@ -55,12 +66,13 @@ function CompanionCard({
   companion,
   onDone,
 }: {
-  companion: Companion
+  companion: OwnedCompanion | Companion
   onDone: () => void
 }): React.ReactNode {
   const color = RARITY_COLORS[companion.rarity]
   const sprite = renderSprite(companion)
   const stars = RARITY_STARS[companion.rarity]
+  const raceLabel = RACE_LABELS[SPECIES_TO_RACE[companion.species]]
 
   useInput((_input, key) => {
     if (key.escape || key.return) {
@@ -70,67 +82,71 @@ function CompanionCard({
 
   return (
     <>
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={color}
-      paddingX={2}
-      paddingY={1}
-      width={CARD_WIDTH}
-    >
-      <Box justifyContent="space-between">
-        <Text bold color={color}>
-          {companion.name}{stars}
-        </Text>
-        <Text dimColor>{companion.species.toUpperCase()}</Text>
-      </Box>
-      <Box justifyContent="center">
-        <Text dimColor>{companion.shiny ? `✨ ${companion.rarity} ✨` : companion.rarity}</Text>
-      </Box>
-      <Box flexDirection="column" alignItems="center" marginTop={1}>
-        {sprite.map((line, i) => (
-          <Text key={i} color={color}>
-            {line}
-          </Text>
-        ))}
-      </Box>
-      <Box flexDirection="column" alignItems="center" marginTop={1}>
-        <Text dimColor italic>"{SPECIES_DESCRIPTIONS[companion.species]}"</Text>
-      </Box>
       <Box
         flexDirection="column"
-        marginTop={1}
-        borderStyle="single"
+        borderStyle="round"
         borderColor={color}
-        borderLeft={false}
-        borderRight={false}
-        borderBottom={false}
-        paddingTop={1}
+        paddingX={2}
+        paddingY={1}
+        width={CARD_WIDTH}
       >
-        {STAT_NAMES.map(stat => (
-          <StatBar
-            key={stat}
-            name={stat}
-            value={companion.stats[stat]}
-            color={color}
-          />
-        ))}
+        <Box justifyContent="space-between">
+          <Text bold color={color}>
+            {companion.name}{stars}
+          </Text>
+          <Text dimColor>{SPECIES_LABELS[companion.species]}</Text>
+        </Box>
+        <Box justifyContent="center" flexDirection="column" alignItems="center">
+          <Text dimColor>
+            {companion.shiny
+              ? `✨ ${RARITY_LABELS[companion.rarity]} ✨`
+              : RARITY_LABELS[companion.rarity]}
+          </Text>
+          <Text dimColor>{raceLabel}</Text>
+        </Box>
+        <Box flexDirection="column" alignItems="center" marginTop={1}>
+          {sprite.map((line, i) => (
+            <Text key={i} color={color}>
+              {line}
+            </Text>
+          ))}
+        </Box>
+        <Box flexDirection="column" alignItems="center" marginTop={1}>
+          <Text dimColor italic>
+            "{SPECIES_DESCRIPTIONS[companion.species]}"
+          </Text>
+        </Box>
+        <Box
+          flexDirection="column"
+          marginTop={1}
+          borderStyle="single"
+          borderColor={color}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom={false}
+          paddingTop={1}
+        >
+          {STAT_NAMES.map(stat => (
+            <StatBar
+              key={stat}
+              name={stat}
+              value={companion.stats[stat]}
+              color={color}
+            />
+          ))}
+        </Box>
+        <Box justifyContent="center" marginTop={1}>
+          <Text dimColor>按 Esc 或 Enter 关闭</Text>
+        </Box>
       </Box>
-      <Box justifyContent="center" marginTop={1}>
-        <Text dimColor>Press Esc or Enter to close</Text>
+      <Box paddingX={2} marginTop={1}>
+        <Text dimColor italic>{companion.profile}</Text>
       </Box>
-    </Box>
-    <Box paddingX={2} marginTop={1}>
-      <Text dimColor italic>{companion.profile}</Text>
-    </Box>
-  </>
+    </>
   )
 }
 
-// ── Hatch steps ──────────────────────────────────────────────────────
-
 type HatchStep =
-  | 'confirm'
   | 'species'
   | 'rarity'
   | 'shiny'
@@ -164,7 +180,7 @@ function ListSelector<T extends string>({
   return (
     <Box flexDirection="column">
       <Text bold>{title}</Text>
-      <Text dimColor>(↑↓ to navigate, Enter to select)</Text>
+      <Text dimColor>（↑↓ 选择，Enter 确认）</Text>
       <Box flexDirection="column" marginTop={1}>
         {items.map((item, i) => (
           <Text key={item}>
@@ -227,8 +243,8 @@ function ImagineInput({
 
   return (
     <Box flexDirection="column">
-      <Text bold>Describe your companion — what do you imagine it looks like?</Text>
-      <Text dimColor>This shapes its personality profile. Press Enter to skip.</Text>
+      <Text bold>描述一下你的同伴——你想象它长什么样？</Text>
+      <Text dimColor>这会影响它的性格档案。直接按 Enter 可跳过。</Text>
       <Box marginTop={1}>
         <Text>{'> '}</Text>
         <Text>{value}</Text>
@@ -262,12 +278,11 @@ function GeneratingProfile({
 
   React.useEffect(() => {
     void generateCompanionProfile(species, personality, userImagine || undefined).then(onDone)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [species, personality, userImagine, onDone])
 
   return (
     <Box flexDirection="column">
-      <Text bold>{SPINNER_FRAMES[frame]} 同伴正在出生...</Text>
+      <Text bold>{SPINNER_FRAMES[frame]} 同伴正在加入你的收藏...</Text>
     </Box>
   )
 }
@@ -277,10 +292,7 @@ function HatchScreen({
 }: {
   onDone: (result?: string) => void
 }): React.ReactNode {
-  const existing = getCompanion()
-  const [step, setStep] = React.useState<HatchStep>(
-    existing ? 'confirm' : 'species',
-  )
+  const [step, setStep] = React.useState<HatchStep>('species')
   const [species, setSpecies] = React.useState<Species>(SPECIES[0]!)
   const [rarity, setRarity] = React.useState<Rarity>('rare')
   const [shiny, setShiny] = React.useState(false)
@@ -289,30 +301,17 @@ function HatchScreen({
   const [name, setName] = React.useState('')
   const [personality, setPersonality] = React.useState<Personality>(PERSONALITIES[0]!)
   const [userImagine, setUserImagine] = React.useState('')
-  const [companion, setCompanion] = React.useState<Companion | null>(null)
-
-  if (step === 'confirm') {
-    return (
-      <ListSelector
-        title={`You already have a companion: ${existing!.name}. Re-initialize?`}
-        items={['yes', 'no'] as const}
-        labels={item => (item === 'yes' ? 'Yes, start over' : 'No, keep current')}
-        onSelect={item => {
-          if (item === 'yes') setStep('species')
-          else onDone()
-        }}
-      />
-    )
-  }
+  const [companion, setCompanion] = React.useState<OwnedCompanion | null>(null)
 
   if (step === 'species') {
     return (
       <ListSelector
-        title="Choose your companion species:"
+        title="请选择要领养的同伴物种："
         items={SPECIES}
         labels={sp => {
           const face = renderFace({ species: sp, eye: '·', hat: 'none' })
-          return `${face}  ${sp}`
+          const race = RACE_LABELS[SPECIES_TO_RACE[sp]]
+          return `${face}  ${SPECIES_LABELS[sp]} · ${race}`
         }}
         onSelect={sp => {
           setSpecies(sp)
@@ -325,11 +324,9 @@ function HatchScreen({
   if (step === 'rarity') {
     return (
       <ListSelector
-        title="Choose rarity:"
+        title="请选择稀有度："
         items={RARITIES}
-        labels={r =>
-          `${RARITY_STARS[r]} ${r} (×${RARITY_MULTIPLIERS[r]})`
-        }
+        labels={r => `${RARITY_STARS[r]} ${RARITY_LABELS[r]} (×${RARITY_MULTIPLIERS[r]})`}
         onSelect={r => {
           setRarity(r)
           setStep('shiny')
@@ -341,9 +338,9 @@ function HatchScreen({
   if (step === 'shiny') {
     return (
       <ListSelector
-        title="Shiny variant?"
+        title="是否为闪光形态？"
         items={['no', 'yes'] as const}
-        labels={item => (item === 'yes' ? '✨ Yes, shiny!' : 'No, normal')}
+        labels={item => (item === 'yes' ? '✨ 是，闪光！' : '否，普通形态')}
         onSelect={item => {
           setShiny(item === 'yes')
           setStep('eye')
@@ -355,7 +352,7 @@ function HatchScreen({
   if (step === 'eye') {
     return (
       <ListSelector
-        title="Choose eye style:"
+        title="请选择眼睛样式："
         items={EYES}
         labels={e => {
           const face = renderFace({ species, eye: e, hat: 'none' })
@@ -372,15 +369,15 @@ function HatchScreen({
   if (step === 'hat') {
     const availableHats = rarity === 'common' ? (['none'] as const) : HATS
     if (rarity === 'common') {
-      // Skip hat selection for common rarity
       setHat('none')
       setStep('name')
       return null
     }
     return (
       <ListSelector
-        title="Choose a hat:"
+        title="请选择帽子："
         items={availableHats}
+        labels={h => HAT_LABELS[h as Hat]}
         onSelect={h => {
           setHat(h as Hat)
           setStep('name')
@@ -392,7 +389,7 @@ function HatchScreen({
   if (step === 'name') {
     return (
       <TextInput
-        title="Name your companion:"
+        title="给你的同伴起个名字："
         onSubmit={n => {
           setName(n)
           setStep('personality')
@@ -404,8 +401,9 @@ function HatchScreen({
   if (step === 'personality') {
     return (
       <ListSelector
-        title="Choose personality:"
+        title="请选择性格："
         items={PERSONALITIES}
+        labels={p => PERSONALITY_LABELS[p]}
         onSelect={p => {
           setPersonality(p)
           setStep('imagine')
@@ -446,8 +444,8 @@ function HatchScreen({
             hatchedAt: Date.now(),
             effortUsed: 0,
           }
-          saveCompanion(newCompanion)
-          setCompanion(newCompanion)
+          const stored = addCompanion(newCompanion)
+          setCompanion(stored)
           setStep('done')
         }}
       />
@@ -458,7 +456,7 @@ function HatchScreen({
     return (
       <Box flexDirection="column">
         <Text bold color={RARITY_COLORS[companion.rarity]}>
-          Your companion is ready!
+          新同伴已加入你的收藏！
         </Text>
         <CompanionCard companion={companion} onDone={() => onDone()} />
       </Box>
@@ -468,7 +466,66 @@ function HatchScreen({
   return null
 }
 
-// ── Main command ──────────────────────────────────────────────────────
+function CompanionListScreen({
+  onDone,
+}: {
+  onDone: (result?: string) => void
+}): React.ReactNode {
+  const companions = listCompanions()
+  const active = getCompanion()
+  const [index, setIndex] = React.useState(
+    Math.max(
+      0,
+      companions.findIndex(companion => companion.id === active?.id),
+    ),
+  )
+
+  useInput((_input, key) => {
+    if (key.escape) {
+      onDone()
+      return
+    }
+    if (key.upArrow) setIndex(i => Math.max(0, i - 1))
+    else if (key.downArrow) setIndex(i => Math.min(companions.length - 1, i + 1))
+    else if (key.return) {
+      const selected = companions[index]
+      if (!selected) return
+      setActiveCompanion(selected.id)
+      onDone(`已切换到 ${selected.name}`)
+    }
+  })
+
+  if (companions.length === 0) {
+    return (
+      <Box flexDirection="column">
+        <Text bold>你还没有领养任何同伴</Text>
+        <Text dimColor>使用 /buddy hatch 开始领养。</Text>
+      </Box>
+    )
+  }
+
+  return (
+    <Box flexDirection="column">
+      <Text bold>我的同伴列表</Text>
+      <Text dimColor>（↑↓ 选择，Enter 切换当前展示，Esc 关闭）</Text>
+      <Box flexDirection="column" marginTop={1}>
+        {companions.map((companion, i) => {
+          const isActive = companion.id === active?.id
+          const rarity = RARITY_LABELS[companion.rarity]
+          const species = SPECIES_LABELS[companion.species]
+          const race = RACE_LABELS[SPECIES_TO_RACE[companion.species]]
+          return (
+            <Text key={companion.id} color={isActive ? RARITY_COLORS[companion.rarity] : undefined}>
+              {i === index ? '▸ ' : '  '}
+              {isActive ? '[当前] ' : ''}
+              {companion.name} · {species} · {race} · {rarity} · 努力值 {companion.effortUsed}
+            </Text>
+          )
+        })}
+      </Box>
+    </Box>
+  )
+}
 
 export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   const sub = args.trim().toLowerCase()
@@ -476,12 +533,12 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   if (sub.startsWith('chat ')) {
     const content = args.trim().slice(5).trim()
     if (!content) {
-      onDone('Usage: /buddy chat <message>')
+      onDone('用法：/buddy chat <消息>')
       return null
     }
     const companion = getCompanion()
     if (!companion) {
-      onDone('No companion yet — try /buddy hatch first!')
+      onDone('你还没有同伴，先试试 /buddy hatch 吧！')
       return null
     }
     const ChatAction = (): React.ReactNode => {
@@ -493,8 +550,7 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
           }
           onDone()
         })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [])
+      }, [setAppState])
       return null
     }
     return <ChatAction />
@@ -503,14 +559,14 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   if (sub === 'pet') {
     const companion = getCompanion()
     if (!companion) {
-      onDone('No companion yet — try /buddy hatch first!')
+      onDone('你还没有同伴，先试试 /buddy hatch 吧！')
       return null
     }
     const PetAction = (): React.ReactNode => {
       const setAppState = useSetAppState()
       React.useEffect(() => {
         setAppState(prev => ({ ...prev, companionPetAt: Date.now() }))
-        onDone(`You pet ${companion.name}!`)
+        onDone(`你摸了摸 ${companion.name}！`)
       }, [setAppState])
       return null
     }
@@ -520,21 +576,25 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   if (sub === 'card') {
     const companion = getCompanion()
     if (!companion) {
-      onDone('No companion yet — try /buddy hatch first!')
+      onDone('你还没有同伴，先试试 /buddy hatch 吧！')
       return null
     }
     return <CompanionCard companion={companion} onDone={() => onDone()} />
   }
 
+  if (sub === 'list') {
+    return <CompanionListScreen onDone={onDone} />
+  }
+
   if (sub === 'mute') {
     saveGlobalConfig(config => ({ ...config, companionMuted: true }))
-    onDone('Companion muted. Use /buddy unmute to bring them back.')
+    onDone('同伴已静音。使用 /buddy unmute 让它回来。')
     return null
   }
 
   if (sub === 'unmute') {
     saveGlobalConfig(config => ({ ...config, companionMuted: false }))
-    onDone('Companion unmuted!')
+    onDone('同伴已恢复显示！')
     return null
   }
 
@@ -547,7 +607,7 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   }
 
   onDone(
-    `Unknown subcommand: ${sub}. Try: /buddy, /buddy hatch, /buddy chat <msg>, /buddy pet, /buddy card, /buddy mute, /buddy unmute`,
+    `未知子命令：${sub}。可用命令：/buddy、/buddy hatch、/buddy list（在列表里直接切换）、/buddy chat <消息>、/buddy pet、/buddy card、/buddy mute、/buddy unmute`,
   )
   return null
 }
