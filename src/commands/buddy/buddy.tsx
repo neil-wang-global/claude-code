@@ -194,12 +194,14 @@ function ListSelector<T extends string>({
 
 function TextInput({
   title,
+  defaultValue = '',
   onSubmit,
 }: {
   title: string
+  defaultValue?: string
   onSubmit: (value: string) => void
 }): React.ReactNode {
-  const [value, setValue] = React.useState('')
+  const [value, setValue] = React.useState(defaultValue)
 
   useInput((input, key) => {
     if (key.return && value.trim()) {
@@ -448,6 +450,7 @@ function HatchScreen({
     return (
       <TextInput
         title="给你的同伴起个名字："
+        defaultValue={SPECIES_LABELS[species]}
         onSubmit={n => {
           setName(n)
           setStep('personality')
