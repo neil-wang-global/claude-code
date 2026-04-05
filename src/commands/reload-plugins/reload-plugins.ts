@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import { getIsRemoteMode } from '../../bootstrap/state.js'
 import { redownloadUserSettings } from '../../services/settingsSync/index.js'
 import type { LocalCommandCall } from '../../types/command.js'
@@ -21,10 +20,7 @@ export const call: LocalCommandCall = async (_args, context) => {
   //
   // No retries: user-initiated command, one attempt + fail-open. The user
   // can re-run /reload-plugins to retry. Startup path keeps its retries.
-  if (
-    feature('DOWNLOAD_USER_SETTINGS') &&
-    (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
-  ) {
+  if (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode()) {
     const applied = await redownloadUserSettings()
     // applyRemoteEntriesToLocal uses markInternalWrite to suppress the
     // file watcher (correct for startup, nothing listening yet); fire

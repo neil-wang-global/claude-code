@@ -9,7 +9,6 @@
  * Backend API: anthropic/anthropic#218817
  */
 
-import { feature } from 'bun:bundle'
 import axios from 'axios'
 import { mkdir, readFile, stat, writeFile } from 'fs/promises'
 import pickBy from 'lodash-es/pickBy.js'
@@ -38,7 +37,6 @@ import { getSettingsFilePathForSource } from '../../utils/settings/settings.js'
 import { resetSettingsCache } from '../../utils/settings/settingsCache.js'
 import { sleep } from '../../utils/sleep.js'
 import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
-import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 import { logEvent } from '../analytics/index.js'
 import { getRetryDelay } from '../api/withRetry.js'
 import {
@@ -60,11 +58,6 @@ const MAX_FILE_SIZE_BYTES = 500 * 1024 // 500 KB per file (matches backend limit
 export async function uploadUserSettingsInBackground(): Promise<void> {
   try {
     if (
-      !feature('UPLOAD_USER_SETTINGS') ||
-      !getFeatureValue_CACHED_MAY_BE_STALE(
-        'tengu_enable_settings_sync_push',
-        false,
-      ) ||
       !getIsInteractive() ||
       !isUsingOAuth()
     ) {
@@ -157,48 +150,42 @@ export function redownloadUserSettings(): Promise<boolean> {
 async function doDownloadUserSettings(
   maxRetries = DEFAULT_MAX_RETRIES,
 ): Promise<boolean> {
-  if (feature('DOWNLOAD_USER_SETTINGS')) {
-    try {
-      if (
-        !getFeatureValue_CACHED_MAY_BE_STALE('tengu_strap_foyer', false) ||
-        !isUsingOAuth()
-      ) {
-        logForDiagnosticsNoPII('info', 'settings_sync_download_skipped')
-        logEvent('tengu_settings_sync_download_skipped', {})
-        return false
-      }
-
-      logForDiagnosticsNoPII('info', 'settings_sync_download_starting')
-      const result = await fetchUserSettings(maxRetries)
-      if (!result.success) {
-        logForDiagnosticsNoPII('warn', 'settings_sync_download_fetch_failed')
-        logEvent('tengu_settings_sync_download_fetch_failed', {})
-        return false
-      }
-
-      if (result.isEmpty) {
-        logForDiagnosticsNoPII('info', 'settings_sync_download_empty')
-        logEvent('tengu_settings_sync_download_empty', {})
-        return false
-      }
-
-      const entries = result.data!.content.entries
-      const projectId = await getRepoRemoteHash()
-      const entryCount = Object.keys(entries).length
-      logForDiagnosticsNoPII('info', 'settings_sync_download_applying', {
-        entryCount,
-      })
-      await applyRemoteEntriesToLocal(entries, projectId)
-      logEvent('tengu_settings_sync_download_success', { entryCount })
-      return true
-    } catch {
-      // Fail-open: log error but don't block CCR startup
-      logForDiagnosticsNoPII('error', 'settings_sync_download_error')
-      logEvent('tengu_settings_sync_download_error', {})
+  try {
+    if (!isUsingOAuth()) {
+      logForDiagnosticsNoPII('info', 'settings_sync_download_skipped')
+      logEvent('tengu_settings_sync_download_skipped', {})
       return false
     }
+
+    logForDiagnosticsNoPII('info', 'settings_sync_download_starting')
+    const result = await fetchUserSettings(maxRetries)
+    if (!result.success) {
+      logForDiagnosticsNoPII('warn', 'settings_sync_download_fetch_failed')
+      logEvent('tengu_settings_sync_download_fetch_failed', {})
+      return false
+    }
+
+    if (result.isEmpty) {
+      logForDiagnosticsNoPII('info', 'settings_sync_download_empty')
+      logEvent('tengu_settings_sync_download_empty', {})
+      return false
+    }
+
+    const entries = result.data!.content.entries
+    const projectId = await getRepoRemoteHash()
+    const entryCount = Object.keys(entries).length
+    logForDiagnosticsNoPII('info', 'settings_sync_download_applying', {
+      entryCount,
+    })
+    await applyRemoteEntriesToLocal(entries, projectId)
+    logEvent('tengu_settings_sync_download_success', { entryCount })
+    return true
+  } catch {
+    // Fail-open: log error but don't block CCR startup
+    logForDiagnosticsNoPII('error', 'settings_sync_download_error')
+    logEvent('tengu_settings_sync_download_error', {})
+    return false
   }
-  return false
 }
 
 /**

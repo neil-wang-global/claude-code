@@ -1,82 +1,146 @@
-# Claude Code 源码还原
+# Neil Code
 
-> 从 `@anthropic-ai/claude-code` npm 包的 source map 中还原的完整 TypeScript 源码，**可本地运行**
+> Claude Code 的一个 Fork。不是官方正史，而是平行世界番外篇；不是萌豚整活仓库，而是"认真修、顺手发癫一点点"的工程分支。
 
-<p align="center">
-  <img src="preview.png?raw=true" alt="Claude Code CLI" width="700">
-</p>
+> **免责声明**：本项目仅供个人学习与技术研究，不得用于任何商业用途或非法用途。所有原始源码版权归 [Anthropic](https://www.anthropic.com) 所有。
 
-> [!WARNING]
-> 本仓库为**非官方**版本，基于公开 npm 发布包 source map 还原，**仅供研究学习**。源码版权归 [Anthropic](https://www.anthropic.com) 所有。
+## 这是什么
 
----
+[`Neil Code`](README.md) 基于一份还原后的 [`Claude Code`](README.md) 源码树继续修改而来。
 
-## 快速开始
+可以把它理解为：
 
-```bash
-bun install       # 安装依赖（需要 Bun ≥ 1.3.5、Node.js ≥ 24）
-bun run dev       # 启动 CLI
-bun run version   # 验证版本
-```
+- 基底仍然是"通过 source map 逆向还原 + 缺失模块补齐"得到的可运行代码树
+- 但在此之上，加入了这个 Fork 自己的目标和行为调整
+- 目标不是"100% 忠于上游"，而是"解锁全部隐藏功能、去掉遥测监控、加入自定义特性"
 
----
+如果用 ACG 比喻，大概属于：
 
-## 从源码中发现的 7 大隐藏功能
+- 原作：[`Claude Code`](README.md)
+- 本作：[`Neil Code`](README.md)
 
-通过阅读还原后的 1,987 个 TypeScript 源文件，我们发现了大量未公开的隐藏功能。这些功能通过**编译开关**（`feature()`）和**用户类型**（`USER_TYPE`）进行门控，外部发布版中大部分被裁剪。
+## 当前定位
 
----
+这个仓库当前强调的是以下方向：
 
-### 1. BUDDY — AI 电子宠物
+- 解锁全部 50+ 编译开关门控的隐藏功能（BUDDY、KAIROS、Bridge、Coordinator 等）
+- 移除反蒸馏限制、遥测采集、自动归属标注等非必要管控模块
+- 内置完整的 Buddy 电子宠物系统（34 种宠物、13 个种族、Pokemon 式等级体系、五维养成）
+- 支持第三方 API 接入时跳过 OAuth 登录
+- 加入 Bypass Permissions 模式到权限切换循环
+- 支持 Token 预算指令、终端面板捕获等增强功能
+- 支持用户设置跨环境同步
+- 在保留 CLI/TUI 主体结构的前提下，降低对官方登录流和内部门控的绑定
+
+换句话说，它现在更像一个"全功能解锁 / 去监控 / 可自定义"的 [`Claude Code`](README.md) 变体。
+
+## 和原始还原仓库的关系
+
+这个仓库**不是**上游官方源码仓库，也**不是** pristine 状态的 Claude Code。
+
+它有两层历史：
+
+1. 第一层：还原后的源码树（通过 source map 逆向 + 缺失模块补齐）
+2. 第二层：基于该源码树继续进行的 Fork 改造
+
+因此你会看到两类差异同时存在：
+
+- 来自恢复过程的 shim、fallback、兼容层
+- 来自 Neil Code 的主动魔改（功能解锁、模块移除、新特性添加）
+
+这两类改动都是真实存在的，不建议把当前代码误判成"官方上游源码镜像"。
+
+## 已解锁 & 已改造的功能
+
+### Buddy — 终端电子宠物
 
 > 源码位置：`src/buddy/`
 
-终端里的拓麻歌子！一个完整的虚拟宠物系统。
+终端里的拓麻歌子，Pokemon 式养成系统。
 
-- **18 种物种**：鸭子、鹅、猫、龙、章鱼、猫头鹰、企鹅、乌龟、蜗牛、幽灵、六角恐龙、水豚、仙人掌、机器人、兔子、蘑菇、果冻、胖猫
-- **5 级稀有度**：普通(60%) → 非凡(25%) → 稀有(10%) → 史诗(4%) → 传说(1%)
-- **1% 闪光概率**：独立于稀有度，任何宠物都有 1% 概率成为闪光个体
-- **确定性生成**：使用账号 UUID + 固定盐值 `'friend-2026-401'` 经 FNV-1a 哈希 → Mulberry32 PRNG，每人只会得到一只固定的宠物，改配置也没用
-- **外观系统**：6 种眼睛样式 + 8 种帽子（皇冠、巫师帽、光环等），common 稀有度没有帽子
-- **交互**：`/buddy pet` 抚摸（爱心动画）、`/buddy hatch` 孵化、`/buddy card` 查看卡片
-- **动画**：500ms 帧率的 ASCII 精灵动画，气泡对话，窄终端自动退化为表情文字脸（如 `=·ω·=`）
-- **编译开关**：`feature('BUDDY')`
+- **34 种宠物**，横跨 **13 个种族**（龙族、兽族、羽族、宝可梦族、仙灵族、宇宙族……）
+- **4 级梯队**：T1 传说级（BST 500-560）→ T2 进化级（410-435）→ T3 中级（370-410）→ T4 基础级（305-350）
+- **5 维属性**：调试力 / 耐心 / 混沌 / 智慧 / 毒舌
+- **5 级稀有度**：普通 → 优秀 → 稀有 → 史诗 → 传说（稀有度乘数 0.90x ~ 1.10x）
+- **1% 闪光概率**：闪光个体 EXP ×1.2、EV ×2
+- **8 种性格**：各有一项属性 +10%、一项 -10%（开朗、毒舌、睿智、混沌、害羞、大胆、梦幻、傲娇）
+- **完整养成**：IV（0-31）、EV（单项 252 / 总计 510）、等级（1-100）、经验值 = 对话消耗 tokens
+- **交互命令**：`/buddy hatch` 领养、`/buddy list` 切换、`/buddy card` 卡片、`/buddy chat` 聊天、`/buddy pet` 摸摸、`/buddy release` 放生
+
+<details>
+<summary>点击展开完整种族值表</summary>
+
+#### T1 传说级（BST 500-560）— 14 种
+
+| 宠物 | 种族 | 调试 | 耐心 | 混沌 | 智慧 | 毒舌 | **总计** |
+|------|------|------|------|------|------|------|---------|
+| 超梦 | 宝可梦 | 160 | 60 | 100 | 154 | 86 | **560** |
+| 灭霸 | 宇宙族 | 140 | 105 | 130 | 120 | 40 | **535** |
+| 梦幻 | 宝可梦 | 105 | 105 | 105 | 105 | 105 | **525** |
+| 孙悟空 | 仙灵族 | 145 | 25 | 154 | 110 | 90 | **524** |
+| 中华龙 | 龙族 | 125 | 90 | 100 | 140 | 55 | **510** |
+| 蛤蟆文太 | 两栖族 | 110 | 55 | 125 | 115 | 105 | **510** |
+| 霸王龙 | 龙族 | 120 | 30 | 150 | 95 | 115 | **510** |
+| 水豚 | 兽族 | 65 | 150 | 30 | 140 | 120 | **505** |
+| 幽灵 | 灵体族 | 120 | 40 | 140 | 105 | 100 | **505** |
+| 八戒 | 仙灵族 | 80 | 120 | 90 | 85 | 130 | **505** |
+| 皮卡丘 | 宝可梦 | 100 | 80 | 115 | 95 | 115 | **505** |
+| 巨龙 | 龙族 | 134 | 50 | 130 | 100 | 90 | **504** |
+| 龙猫 | 灵体族 | 75 | 145 | 40 | 135 | 105 | **500** |
+| 滚球兽 | 数码宝贝 | 90 | 95 | 105 | 100 | 110 | **500** |
+
+#### T2 进化级（BST 410-435）— 4 种
+
+| 宠物 | 种族 | 调试 | 耐心 | 混沌 | 智慧 | 毒舌 | **总计** |
+|------|------|------|------|------|------|------|---------|
+| 章鱼 | 海生族 | 110 | 80 | 65 | 130 | 50 | **435** |
+| 机器人 | 构造族 | 145 | 90 | 30 | 120 | 40 | **425** |
+| 猫猫 | 兽族 | 85 | 40 | 100 | 70 | 120 | **415** |
+| 猫头鹰 | 羽族 | 70 | 95 | 35 | 145 | 65 | **410** |
+
+#### T3 中级（BST 370-410）— 10 种
+
+| 宠物 | 种族 | 调试 | 耐心 | 混沌 | 智慧 | 毒舌 | **总计** |
+|------|------|------|------|------|------|------|---------|
+| 柴犬 | 兽族 | 60 | 85 | 95 | 70 | 100 | **410** |
+| 小火龙 | 宝可梦 | 85 | 50 | 110 | 75 | 85 | **405** |
+| 六角恐龙 | 龙族 | 80 | 90 | 70 | 95 | 60 | **395** |
+| 妙蛙种子 | 宝可梦 | 75 | 95 | 60 | 95 | 65 | **390** |
+| 杰尼龟 | 宝可梦 | 70 | 100 | 55 | 90 | 75 | **390** |
+| 企鹅 | 羽族 | 80 | 105 | 50 | 85 | 65 | **385** |
+| 仙人掌 | 植生族 | 65 | 110 | 50 | 55 | 105 | **385** |
+| 大鹅 | 羽族 | 55 | 25 | 130 | 50 | 125 | **385** |
+| 蘑菇 | 植生族 | 55 | 80 | 105 | 85 | 50 | **375** |
+| 乌龟 | 爬行族 | 50 | 135 | 20 | 100 | 65 | **370** |
+
+#### T4 基础级（BST 305-350）— 6 种
+
+| 宠物 | 种族 | 调试 | 耐心 | 混沌 | 智慧 | 毒舌 | **总计** |
+|------|------|------|------|------|------|------|---------|
+| 胖团 | 兽族 | 40 | 105 | 65 | 50 | 90 | **350** |
+| 小鸭 | 羽族 | 70 | 80 | 55 | 80 | 55 | **340** |
+| 团子 | 灵体族 | 55 | 95 | 40 | 75 | 65 | **330** |
+| 蜗牛 | 兽族 | 30 | 145 | 20 | 70 | 55 | **320** |
+| 嘟嘟鸟 | 羽族 | 40 | 110 | 30 | 50 | 90 | **320** |
+| 兔子 | 兽族 | 55 | 70 | 65 | 65 | 50 | **305** |
+
+</details>
 
 ---
 
-### 2. KAIROS — 永不关机的 Claude
+### KAIROS — 永不关机的 Claude
 
 > 源码位置：`src/assistant/`、`src/proactive/`、`src/services/autoDream/`
 
 关掉终端 Claude 还在运行的持久助手模式。
 
-- **跨会话持久运行**：通过 `.claude/settings.json` 的 `assistant: true` 激活，会话状态持久化到磁盘
-- **每日日志**：自动在 `<autoMemPath>/logs/YYYY/MM/YYYY-MM-DD.md` 记录工作日志
-- **自动做梦（Dream）**：距上次整合超 24 小时且有 5+ 新会话时，后台自动启动记忆整合子代理，分四阶段运行：Orient → Gather → Consolidate → Prune
-- **锁机制**：`.consolidate-lock` 文件 + PID 存活检查，防止多进程同时做梦
-- **主动模式（Proactive）**：没人说话时自己找活干，没活就调用 `SleepTool` 等着。接收周期性 `<tick>` 提示来检查是否有事可做
-- **后台任务**：命令超 15 秒自动丢后台，支持持久 cron 任务（`permanent: true` 不受 7 天过期限制）
-- **编译开关**：`feature('KAIROS')`、`feature('KAIROS_BRIEF')`、`feature('KAIROS_CHANNELS')`
-- **远程开关**：GrowthBook `tengu_kairos`、`tengu_onyx_plover`（Dream 阈值配置）
+- **跨会话持久运行**：会话状态持久化到磁盘
+- **自动做梦（Dream）**：后台自动启动记忆整合子代理，四阶段运行：Orient → Gather → Consolidate → Prune
+- **主动模式（Proactive）**：没人说话时自己找活干，没活就调用 `SleepTool` 等着
 
 ---
 
-### 3. ULTRAPLAN — 云端深度规划
-
-> 源码位置：`src/commands/ultraplan.tsx`、`src/utils/ultraplan/`
-
-把难题甩给云端 Opus 独立研究最长 30 分钟。
-
-- **流程**：`/ultraplan <prompt>` → 创建远程 CCR 会话 → Opus 模型独立研究 → 后台轮询等待（30 分钟超时）→ 浏览器查看/修改方案 → 批准执行或传送回本地
-- **关键词触发**：消息中包含 "ultraplan" 自动触发，智能排除引号/路径/标识符中的误触发
-- **传送（Teleport）**：`src/utils/teleport.tsx` 实现本地 ↔ 远程会话传输，支持 Git Bundle 打包代码上下文
-- **完全内部限定**：`isEnabled: () => "external" === 'ant'`，外部版永远不可用
-- **编译开关**：`feature('ULTRAPLAN')`
-- **远程开关**：`tengu_ultraplan_model`（控制使用的模型）
-
----
-
-### 4. Coordinator — 多 Agent 编排模式
+### Coordinator — 多 Agent 编排
 
 > 源码位置：`src/coordinator/`
 
@@ -84,191 +148,98 @@ bun run version   # 验证版本
 
 - **角色分离**：Coordinator 只有三个工具——派活（Agent）、通信（SendMessage）、停工（Shutdown）
 - **Worker 机制**：Worker 在独立子进程中运行，各自拥有完整工具集
-- **核心铁律**：系统提示中明确规定"禁止甩锅式委派"——不能把不清楚的需求直接丢给 Worker
-- **任务追踪**：基于文件的共享任务列表（`~/.claude/tasks/`），Coordinator 和 Worker 共同读写
-- **编译开关**：`feature('COORDINATOR_MODE')`
-- **环境变量**：`CLAUDE_CODE_COORDINATOR_MODE`
 
 ---
 
-### 5. 26+ 隐藏命令 & 秘密开关
+### Bridge — 远程遥控终端
 
-> 源码位置：`src/commands.ts`、`src/commands/`
+> 源码位置：`src/bridge/`
 
-#### Feature-gated 命令（编译开关控制）
+从 claude.ai 或手机直接操控本地 CLI。WebSocket 实时双向通道 + 远程权限审批。
 
-| 命令 | 功能 | 开关 |
-|------|------|------|
-| `/buddy` | 宠物系统 | `BUDDY` |
-| `/proactive` | 主动自主模式 | `PROACTIVE` / `KAIROS` |
-| `/assistant` | 助手模式 | `KAIROS` |
-| `/brief` | 简报模式 | `KAIROS` / `KAIROS_BRIEF` |
-| `/bridge` | 远程控制桥接 | `BRIDGE_MODE` |
-| `/voice` | 语音模式 | `VOICE_MODE` |
-| `/ultraplan` | 云端深度规划 | `ULTRAPLAN` |
-| `/fork` | 子代理分叉 | `FORK_SUBAGENT` |
-| `/peers` | 对等通信 | `UDS_INBOX` |
-| `/workflows` | 工作流脚本 | `WORKFLOW_SCRIPTS` |
-| `/torch` | Torch 功能 | `TORCH` |
-| `/force-snip` | 强制历史截断 | `HISTORY_SNIP` |
+---
 
-#### 仅内部用户（`USER_TYPE === 'ant'`）命令
+### 其他已解锁 / 已改造的功能
 
-| 命令 | 功能 |
+| 功能 | 说明 |
 |------|------|
-| `/teleport` | 传送会话到远程/本地 |
-| `/bughunter` | 内部 Bug 猎人 |
-| `/mock-limits` | 模拟速率限制 |
-| `/ctx_viz` | 上下文可视化 |
-| `/break-cache` | 强制缓存清除 |
-| `/ant-trace` | 内部追踪工具 |
-| `/good-claude` | 内部反馈 |
-| `/agents-platform` | 智能体平台 |
-| `/autofix-pr` | 自动修复 PR |
-| `/debug-tool-call` | 调试工具调用 |
-| `/reset-limits` | 重置速率限制 |
+| **全编译开关解锁** | 50+ 个 `feature()` 开关全部打开，不再是阉割版 |
+| **移除反蒸馏限制** | 不再注入 `anti_distillation` / `fake_tools` 参数 |
+| **移除遥测采集** | 清理隐私相关采集模块 |
+| **移除自动归属** | 不再往 commit / PR 里塞 `Co-Authored-By` 和贡献百分比 |
+| **跳过第三方 API 登录** | 配了 `ANTHROPIC_API_KEY` + 非官方 `ANTHROPIC_BASE_URL` 时自动跳过 OAuth |
+| **Bypass Permissions 模式** | Shift+Tab 循环中加入第四模式，跳过所有权限确认 |
+| **Token 预算** | 消息中加 `+500k`、`+2m` 等指令指定 token 消耗目标 |
+| **终端面板捕获** | `terminal_capture` 工具读取 Alt+J 终端面板内容 |
+| **精简输出模式** | 设置 `CLAUDE_CODE_STREAMLINED_OUTPUT=true` + `stream-json` 格式时，输出只保留文本和工具摘要 |
+| **设置跨环境同步** | 本地设置自动上传云端，远程环境自动拉取 |
+| **MCP Skills 发现** | 从 MCP 服务器自动发现和加载 `skill://` 资源 |
+| **修复 WebFetch 网页抓取** | 补齐缺失依赖，WebFetch 工具恢复正常，可抓取和分析任意网页内容 |
+| **子代理分叉（Fork）** | `/fork <指令>` 将任务委派给继承完整上下文的后台子代理，共享 prompt cache，不阻塞主对话 |
+| **慢操作日志** | 自动检测超过 300ms 的内部操作（JSON 序列化、深拷贝、文件写入等），记录到 DevBar 和调试日志，帮助定位 CLI 卡顿 |
+| **移除 Opus 自动降速** | 遇到速率限制时不再自动从快速模式回退到标准速度，统一走重试流程 |
+| **彩虹色指令** | `/` 开头的指令渲染为彩虹色 |
 
-#### 隐藏 CLI 参数
+## 快速开始
 
-```
---teleport [session]    恢复传送会话
---remote [description]  创建远程会话
---proactive             主动模式
---assistant             助手模式
---brief                 简报模式
---remote-control        远程控制
---hard-fail             硬失败模式
---agent-teams           多代理团队
+环境要求：
+
+- Bun 1.3.5 或更高版本
+- Node.js 24 或更高版本
+
+```bash
+bun install       # 安装依赖
+bun run dev       # 启动 CLI
+bun run version   # 验证版本
 ```
 
----
+## 快速安装（推荐开发者直接源码使用）
 
-### 6. Bridge — 远程遥控终端
+如果你是直接拉这个仓库源码来用，最快的方式是用 `bun link` 把它注册成全局命令。
 
-> 源码位置：`src/bridge/`（31 个文件）
+在仓库根目录执行：
 
-从 claude.ai 或手机直接操控本地 CLI。
+```bash
+bun install
+bun link
+```
 
-- **WebSocket 实时连接**：本地 CLI 通过 WebSocket 与 claude.ai 建立双向通道
-- **完整远程控制**：远程端可以发送消息、批准权限、查看输出
-- **进程间通信**：跨 Claude 会话的消息传递机制
-- **状态同步**：`bridgeStatusUtil.ts` 实时同步运行状态
-- **权限回调**：`bridgePermissionCallbacks.ts` 远程权限审批
-- **编译开关**：`feature('BRIDGE_MODE')`、`feature('DAEMON')`
+此后可直接运行：
 
----
+```bash
+claude
+```
 
-### 7. 50 个编译开关 + 远程门控
+## 使用 Git 直接源码级更新
 
-外部发布版是**阉割版**。Anthropic 通过三层门控控制功能：
+典型更新流程：
 
-#### 第一层：编译时开关（`feature()`，约 50 个）
+```bash
+git pull
+bun install
+bun link
+```
 
-构建时决定代码包含/排除，以下是完整列表：
+### 推荐工作流
 
-<details>
-<summary>点击展开全部 50 个编译开关</summary>
+首次安装：
 
-| 开关 | 说明 |
-|------|------|
-| `BUDDY` | 宠物伴侣系统 |
-| `KAIROS` | 持久助手模式 |
-| `KAIROS_BRIEF` | 简报模式 |
-| `KAIROS_CHANNELS` | 通道通知 |
-| `KAIROS_GITHUB_WEBHOOKS` | GitHub Webhook |
-| `ULTRAPLAN` | 云端深度规划 |
-| `COORDINATOR_MODE` | 多 Agent 编排 |
-| `BRIDGE_MODE` | 远程控制桥接 |
-| `VOICE_MODE` | 语音交互 |
-| `PROACTIVE` | 主动自主模式 |
-| `FORK_SUBAGENT` | 子代理分叉 |
-| `DAEMON` | 守护进程模式 |
-| `UDS_INBOX` | Unix Socket 收件箱 |
-| `WORKFLOW_SCRIPTS` | 工作流脚本 |
-| `TORCH` | Torch 功能 |
-| `MONITOR_TOOL` | 监控工具 |
-| `HISTORY_SNIP` | 历史截断 |
-| `BASH_CLASSIFIER` | Bash 命令分类器 |
-| `BG_SESSIONS` | 后台会话 |
-| `CACHED_MICROCOMPACT` | 缓存微压缩 |
-| `CCR_REMOTE_SETUP` | Web 远程设置 |
-| `CHICAGO_MCP` | MCP 扩展（Computer Use） |
-| `COMMIT_ATTRIBUTION` | 提交归属标注 |
-| `CONNECTOR_TEXT` | 连接器文本 |
-| `CONTEXT_COLLAPSE` | 上下文折叠 |
-| `COWORKER_TYPE_TELEMETRY` | 协作者遥测 |
-| `DOWNLOAD_USER_SETTINGS` | 下载用户设置 |
-| `EXPERIMENTAL_SKILL_SEARCH` | 实验性技能搜索 |
-| `EXTRACT_MEMORIES` | 自动提取记忆 |
-| `FILE_PERSISTENCE` | 文件持久化 |
-| `HARD_FAIL` | 硬失败模式 |
-| `LODESTONE` | Lodestone 功能 |
-| `MCP_SKILLS` | MCP 技能系统 |
-| `MEMORY_SHAPE_TELEMETRY` | 记忆形状遥测 |
-| `MESSAGE_ACTIONS` | 消息操作 |
-| `NATIVE_CLIENT_ATTESTATION` | 客户端证明 |
-| `PROMPT_CACHE_BREAK_DETECTION` | 缓存中断检测 |
-| `QUICK_SEARCH` | 快速搜索 |
-| `REACTIVE_COMPACT` | 响应式压缩 |
-| `SLOW_OPERATION_LOGGING` | 慢操作日志 |
-| `STREAMLINED_OUTPUT` | 精简输出 |
-| `TEAMMEM` | 团队记忆同步 |
-| `TEMPLATES` | 模板/分类器 |
-| `TERMINAL_PANEL` | 终端面板 |
-| `TOKEN_BUDGET` | Token 预算 |
-| `TRANSCRIPT_CLASSIFIER` | 转录分类器 |
-| `UNATTENDED_RETRY` | 无人值守重试 |
-| `UPLOAD_USER_SETTINGS` | 上传用户设置 |
-| `BREAK_CACHE_COMMAND` | 缓存清除注入 |
+```bash
+git clone <your-fork-or-repo-url>
+cd claude-code
+bun install
+bun link
+claude
+```
 
-</details>
+后续更新：
 
-#### 第二层：用户类型（`USER_TYPE`）
-
-- **`ant`**（Anthropic 内部）— 解锁全部功能、20 分钟 GrowthBook 刷新、调试工具、200+ 处专属检查
-- **`external`**（外部用户）— 裁剪版，6 小时 GrowthBook 刷新
-
-#### 第三层：GrowthBook 远程 A/B 测试
-
-| 开关 | 控制内容 |
-|------|---------|
-| `tengu_kairos` | KAIROS 助手模式开关 |
-| `tengu_onyx_plover` | 自动做梦阈值（间隔/会话数） |
-| `tengu_cobalt_frost` | 语音识别（Nova 3）开关 |
-| `tengu_ultraplan_model` | Ultraplan 使用的模型 |
-| `tengu_ant_model_override` | 内部用户模型覆盖 |
-| `tengu_session_memory` | 会话记忆功能 |
-| `tengu_max_version_config` | 自动更新 Kill Switch |
-| `tengu_frond_boric` | 数据接收器 Kill Switch |
-| `tengu_herring_clock` | 团队记忆路径 |
-| `tengu_sm_config` | 会话记忆配置 |
-
----
-
-## 隐藏环境变量速查
-
-<details>
-<summary>点击展开完整环境变量列表</summary>
-
-| 环境变量 | 说明 |
-|----------|------|
-| `ANTHROPIC_MODEL` | 模型覆盖 |
-| `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | 最大输出 token |
-| `CLAUDE_CODE_DISABLE_THINKING` | 禁用思考 |
-| `CLAUDE_CODE_PROACTIVE` | 主动模式 |
-| `CLAUDE_CODE_COORDINATOR_MODE` | 协调器模式 |
-| `CLAUDE_CODE_BRIEF` | 简报模式 |
-| `CLAUDE_CODE_USE_BEDROCK` | 使用 AWS Bedrock |
-| `CLAUDE_CODE_USE_VERTEX` | 使用 Google Vertex |
-| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | 禁用自动记忆 |
-| `CLAUDE_CODE_EXTRA_BODY` | API 附加 JSON |
-| `CLAUDE_CODE_SYNTAX_HIGHLIGHT` | 语法高亮主题 |
-| `CLAUDE_CODE_IDLE_THRESHOLD_MINUTES` | 空闲阈值（默认 75 分钟） |
-| `CLAUDE_INTERNAL_FC_OVERRIDES` | GrowthBook 覆盖（仅 ant） |
-
-</details>
-
----
+```bash
+git pull
+bun install
+bun link
+claude
+```
 
 ## 项目结构
 
@@ -279,7 +250,7 @@ src/                    # 核心源码（1,987 个 TS/TSX）
 ├── services/           # API / MCP / analytics / autoDream
 ├── components/         # 148 个终端 UI 组件（React + Ink）
 ├── hooks/              # 87 个自定义 Hooks
-├── buddy/              # 宠物伴侣系统
+├── buddy/              # 宠物伴侣系统（34 种宠物）
 ├── assistant/          # KAIROS 助手模式
 ├── coordinator/        # 多 Agent 协调器
 ├── bridge/             # 远程控制桥接（31 文件）
@@ -293,13 +264,32 @@ vendor/                 # 原生绑定源码
 
 ---
 
-## 数据来源
+## 为什么会有这个仓库
 
-- npm 包：[@anthropic-ai/claude-code](https://www.npmjs.com/package/@anthropic-ai/claude-code)
-- 还原方式：提取 `cli.js.map` 中的 `sourcesContent`
+因为 source map 并不能召唤完整原仓库，最多只能说"把灵魂碎片召回来一部分"。
 
-## 声明
+常见缺口包括：
 
+- 类型专用文件缺失
+- 构建产物和中间文件缺失
+- 私有包包装层无法恢复
+- 原生绑定无法恢复
+- 动态导入资源不完整
+
+因此这个仓库的目标从一开始就不是考古式供奉，而是：
+
+- 先恢复到可运行
+- 再恢复到可维护
+- 最后在能跑的基础上，解锁全部隐藏功能，按需求继续 Fork
+
+简而言之：
+
+> 先让它活，再让它能打，再让它全部解锁。
+
+## 说明与免责声明
+
+- 本仓库是 [`Claude Code`](README.md) 的 Fork：[`Neil Code`](README.md)
+- 它包含恢复期代码与后续 Fork 改动，不代表官方立场
 - 源码版权归 [Anthropic](https://www.anthropic.com) 所有
 - 仅用于技术研究与学习，请勿用于商业用途
 - 如有侵权，请联系删除
