@@ -505,10 +505,7 @@ export async function runHeadless(
   // user settings a similar head start. The cached promise is joined in
   // installPluginsAndApplyMcpInBackground before plugin install reads
   // enabledPlugins.
-  if (
-    feature('DOWNLOAD_USER_SETTINGS') &&
-    (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
-  ) {
+  if (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode()) {
     void downloadUserSettings()
   }
 
@@ -1696,7 +1693,6 @@ function runHeadlessStreaming(
       // settings (fired in main.tsx preAction). downloadUserSettings() caches
       // its promise so this awaits the same in-flight request.
       await Promise.all([
-        feature('DOWNLOAD_USER_SETTINGS') &&
         (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
           ? withDiagnosticsTiming('headless_user_settings_download', () =>
               downloadUserSettings(),
@@ -3044,8 +3040,7 @@ function runHeadlessStreaming(
         } else if (message.request.subtype === 'reload_plugins') {
           try {
             if (
-              feature('DOWNLOAD_USER_SETTINGS') &&
-              (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
+              isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode()
             ) {
               // Re-pull user settings so enabledPlugins pushed from the
               // user's local CLI take effect before the cache sweep.
