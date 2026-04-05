@@ -1,9 +1,4 @@
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import type { Attributes, Meter, MetricOptions } from '@opentelemetry/api'
-import type { logs } from '@opentelemetry/api-logs'
-import type { LoggerProvider } from '@opentelemetry/sdk-logs'
-import type { MeterProvider } from '@opentelemetry/sdk-metrics'
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base'
 import { realpathSync } from 'fs'
 import sumBy from 'lodash-es/sumBy.js'
 import { cwd } from 'process'
@@ -28,6 +23,23 @@ type RegisteredHookMatcher = HookCallbackMatcher | PluginHookMatcher
 
 import type { SessionId } from 'src/types/ids.js'
 
+type TelemetryAttributes = Record<string, string | number | boolean>
+
+type TelemetryMetricOptions = {
+  description?: string
+  unit?: string
+}
+
+type TelemetryLogger = unknown
+
+type TelemetryLoggerProvider = unknown
+
+type TelemetryMeter = unknown
+
+type TelemetryMeterProvider = unknown
+
+type TelemetryTracerProvider = unknown
+
 // DO NOT ADD MORE STATE HERE - BE JUDICIOUS WITH GLOBAL STATE
 
 // dev: true on entries that came via --dangerously-load-development-channels.
@@ -39,7 +51,7 @@ export type ChannelEntry =
   | { kind: 'server'; name: string; dev?: boolean }
 
 export type AttributedCounter = {
-  add(value: number, additionalAttributes?: Attributes): void
+  add(value: number, additionalAttributes?: TelemetryAttributes): void
 }
 
 type State = {
@@ -87,7 +99,7 @@ type State = {
   oauthTokenFromFd: string | null | undefined
   apiKeyFromFd: string | null | undefined
   // Telemetry state
-  meter: Meter | null
+  meter: TelemetryMeter | null
   sessionCounter: AttributedCounter | null
   locCounter: AttributedCounter | null
   prCounter: AttributedCounter | null
@@ -101,12 +113,12 @@ type State = {
   // Parent session ID for tracking session lineage (e.g., plan mode -> implementation)
   parentSessionId: SessionId | undefined
   // Logger state
-  loggerProvider: LoggerProvider | null
-  eventLogger: ReturnType<typeof logs.getLogger> | null
+  loggerProvider: TelemetryLoggerProvider | null
+  eventLogger: TelemetryLogger | null
   // Meter provider state
-  meterProvider: MeterProvider | null
+  meterProvider: TelemetryMeterProvider | null
   // Tracer provider state
-  tracerProvider: BasicTracerProvider | null
+  tracerProvider: TelemetryTracerProvider | null
   // Agent color state
   agentColorMap: Map<string, AgentColorName>
   agentColorIndex: number
@@ -333,7 +345,7 @@ function getInitialState(): State {
     // Logger state
     loggerProvider: null,
     eventLogger: null,
-    // Meter provider state
+    // TelemetryMeter provider state
     meterProvider: null,
     tracerProvider: null,
     // Agent color state
@@ -946,8 +958,8 @@ export function resetModelStringsForTestingOnly() {
 }
 
 export function setMeter(
-  meter: Meter,
-  createCounter: (name: string, options: MetricOptions) => AttributedCounter,
+  meter: TelemetryMeter,
+  createCounter: (name: string, options: TelemetryMetricOptions) => AttributedCounter,
 ): void {
   STATE.meter = meter
 
@@ -986,7 +998,7 @@ export function setMeter(
   })
 }
 
-export function getMeter(): Meter | null {
+export function getMeter(): TelemetryMeter | null {
   return STATE.meter
 }
 
@@ -1022,35 +1034,35 @@ export function getActiveTimeCounter(): AttributedCounter | null {
   return STATE.activeTimeCounter
 }
 
-export function getLoggerProvider(): LoggerProvider | null {
+export function getLoggerProvider(): TelemetryLoggerProvider | null {
   return STATE.loggerProvider
 }
 
-export function setLoggerProvider(provider: LoggerProvider | null): void {
+export function setLoggerProvider(provider: TelemetryLoggerProvider | null): void {
   STATE.loggerProvider = provider
 }
 
-export function getEventLogger(): ReturnType<typeof logs.getLogger> | null {
+export function getEventLogger(): TelemetryLogger | null {
   return STATE.eventLogger
 }
 
 export function setEventLogger(
-  logger: ReturnType<typeof logs.getLogger> | null,
+  logger: TelemetryLogger | null,
 ): void {
   STATE.eventLogger = logger
 }
 
-export function getMeterProvider(): MeterProvider | null {
+export function getMeterProvider(): TelemetryMeterProvider | null {
   return STATE.meterProvider
 }
 
-export function setMeterProvider(provider: MeterProvider | null): void {
+export function setMeterProvider(provider: TelemetryMeterProvider | null): void {
   STATE.meterProvider = provider
 }
-export function getTracerProvider(): BasicTracerProvider | null {
+export function getTracerProvider(): TelemetryTracerProvider | null {
   return STATE.tracerProvider
 }
-export function setTracerProvider(provider: BasicTracerProvider | null): void {
+export function setTracerProvider(provider: TelemetryTracerProvider | null): void {
   STATE.tracerProvider = provider
 }
 
