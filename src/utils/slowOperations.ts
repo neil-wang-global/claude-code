@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import type { WriteFileOptions } from 'fs'
 import {
   closeSync,
@@ -24,7 +23,7 @@ type WriteFileOptionsWithFlush =
  * Operations taking longer than this will be logged for debugging.
  * - Override: set CLAUDE_CODE_SLOW_OPERATION_THRESHOLD_MS to a number
  * - Dev builds: 20ms (lower threshold for development)
- * - Ants: 300ms (enabled for all internal users)
+ * - Default: 300ms
  */
 const SLOW_OPERATION_THRESHOLD_MS = (() => {
   const envValue = process.env.CLAUDE_CODE_SLOW_OPERATION_THRESHOLD_MS
@@ -37,10 +36,7 @@ const SLOW_OPERATION_THRESHOLD_MS = (() => {
   if (process.env.NODE_ENV === 'development') {
     return 20
   }
-  if (process.env.USER_TYPE === 'ant') {
-    return 300
-  }
-  return Infinity
+  return 300
 })()
 
 // Re-export for callers that still need the threshold value directly
@@ -142,11 +138,8 @@ function slowLoggingExternal(): Disposable {
 /**
  * Tagged template for slow operation logging.
  *
- * In ANT builds: creates an AntSlowLogger that times the operation and logs
+ * Creates an AntSlowLogger that times the operation and logs
  * if it exceeds the threshold. Description is built lazily only when slow.
- *
- * In external builds: returns a singleton no-op disposable. Zero allocations,
- * zero timing. AntSlowLogger and buildDescription are dead-code-eliminated.
  *
  * @example
  * using _ = slowLogging`structuredClone(${value})`
@@ -154,7 +147,7 @@ function slowLoggingExternal(): Disposable {
  */
 export const slowLogging: {
   (strings: TemplateStringsArray, ...values: unknown[]): Disposable
-} = feature('SLOW_OPERATION_LOGGING') ? slowLoggingAnt : slowLoggingExternal
+} = slowLoggingAnt
 
 // --- Wrapped operations ---
 
