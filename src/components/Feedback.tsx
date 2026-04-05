@@ -4,14 +4,10 @@ import type { CommandResultDisplay } from '../commands.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import { Box, Text, useInput } from '../ink.js';
 import { useKeybinding } from '../keybindings/useKeybinding.js';
-import { queryHaiku } from '../services/api/claude.js';
-import { startsWithApiErrorPrefix } from '../services/api/errors.js';
-import type { Message } from '../types/message.js';
 import { openBrowser } from '../utils/browser.js';
 import { env } from '../utils/env.js';
 import { getInMemoryErrors, logError } from '../utils/log.js';
 import { jsonStringify } from '../utils/slowOperations.js';
-import { asSystemPrompt } from '../utils/systemPromptType.js';
 import { ConfigurableShortcutHint } from './ConfigurableShortcutHint.js';
 import { Byline } from './design-system/Byline.js';
 import { Dialog } from './design-system/Dialog.js';
@@ -22,7 +18,6 @@ import TextInput from './TextInput.js';
 const GITHUB_URL_LIMIT = 7250;
 const GITHUB_ISSUES_REPO_URL = "external" === 'ant' ? 'https://github.com/anthropics/claude-cli-internal/issues' : 'https://github.com/anthropics/claude-code/issues';
 type Props = {
-  messages: Message[];
   initialDescription?: string;
   onDone(result: string, options?: {
     display?: CommandResultDisplay;
@@ -98,7 +93,6 @@ function getSanitizedErrorLogs(): Array<{
   });
 }
 export function Feedback({
-  messages,
   initialDescription,
   onDone
 }: Props): React.ReactNode {
@@ -112,8 +106,7 @@ export function Feedback({
     setStep('submitting');
     setError(null);
     try {
-      const generatedTitle = await generateTitle(description);
-      setTitle(generatedTitle);
+      setTitle(createFallbackTitle(description));
       setStep('done');
     } catch (err) {
       logError(err);
@@ -304,33 +297,6 @@ export function createGitHubIssueUrl(feedbackId: string, title: string, descript
     truncatedEncodedErrors = truncatedEncodedErrors.slice(0, lastPercent);
   }
   return baseUrl + encodedPrefix + truncatedEncodedErrors + ellipsis + encodedSuffix + encodedNote;
-}
-async function generateTitle(description: string): Promise<string> {
-  try {
-    const response = await queryHaiku({
-      systemPrompt: asSystemPrompt(['Generate a concise, technical issue title (max 80 chars) for a public GitHub issue based on this bug report for Claude Code.', 'Claude Code is an agentic coding CLI based on the Anthropic API.', 'The title should:', '- Include the type of issue [Bug] or [Feature Request] as the first thing in the title', '- Be concise, specific and descriptive of the actual problem', '- Use technical terminology appropriate for a software issue', '- For error messages, extract the key error (e.g., "Missing Tool Result Block" rather than the full message)', '- Be direct and clear for developers to understand the problem', '- If you cannot determine a clear issue, use "Bug Report: [brief description]"', '- Any LLM API errors are from the Anthropic API, not from any other model provider', 'Your response will be directly used as the title of the Github issue, and as such should not contain any other commentary or explaination', 'Examples of good titles include: "[Bug] Auto-Compact triggers to soon", "[Bug] Anthropic API Error: Missing Tool Result Block", "[Bug] Error: Invalid Model Name for Opus"']),
-      userPrompt: description,
-      options: {
-        hasAppendSystemPrompt: false,
-        toolChoice: undefined,
-        isNonInteractiveSession: false,
-        agents: [],
-        querySource: 'feedback',
-        mcpTools: []
-      }
-    });
-    const title = response.message.content[0]?.type === 'text' ? response.message.content[0].text : 'Bug Report';
-
-    // Check if the title contains an API error message
-    if (startsWithApiErrorPrefix(title)) {
-      return createFallbackTitle(description);
-    }
-    return title;
-  } catch (error) {
-    // If there's any error in title generation, use a fallback title
-    logError(error);
-    return createFallbackTitle(description);
-  }
 }
 function createFallbackTitle(description: string): string {
   // Create a safe fallback title based on the bug description

@@ -16,7 +16,7 @@ export function renderFeedbackComponent(onDone: (result?: string, options?: {
     messages?: Message[];
   };
 } = {}): React.ReactNode {
-  return <Feedback messages={messages} initialDescription={initialDescription} onDone={onDone} />;
+  return <Feedback initialDescription={initialDescription} onDone={onDone} />;
 }
 export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXCommandContext, args?: string): Promise<React.ReactNode> {
   const initialDescription = args || '';
