@@ -1,0 +1,7 @@
+{
+  "type": "github",
+  "base-branch": "main",
+  "branch-template": "feature/{issue-no}-{issue-subject}",
+  "need-worktree": true,
+  "remarks": "创建的issue需要符合以下规则：1. 指派至我\n2. 分配里程碑：‘v2.1.89’\n3. 若是需求，分配‘enhancement’标签，若是bug，分配‘bug’标签"
+}
